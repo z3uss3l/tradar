@@ -2445,7 +2445,7 @@ function bindV113(){
 /* QuantTrend 12 recommendation layer. Uses the existing causal, per-asset model pipeline. */
 const QT12={version:'12.0.5',running:false,stop:false,priority:ETF_PRIORITY.slice(),etfs:[...ETF_PRIORITY,...Object.entries(ASSETS).filter(([k,v])=>v[1]==='etf'&&!ETF_PRIORITY.includes(k)).map(([k])=>k)],
  delay:ms=>new Promise(resolve=>setTimeout(resolve,ms)),
- currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&r.ensemble?.length===5?r:null;},
+ currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];const validP=p=>Array.isArray(p)&&p.length===3&&p.every(v=>Number.isFinite(v)&&v>=0&&v<=1)&&Math.abs(p.reduce((a,b)=>a+b,0)-1)<=1e-5;return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&Array.isArray(r.oos)&&r.oos.length===5&&Array.isArray(r.currentP)&&r.currentP.length===5&&r.currentP.every(validP)&&validP(r.p)&&Array.isArray(r.ensemble)?r:null;},
  assess(asset){
   const set=state.sets?.[asset],r=this.currentResult(asset);
   const baseOut={asset,action:'NO_SIGNAL',direction:'NICHT BESTIMMBAR',strength:'KEIN SIGNAL',up:null,down:null,asof:set?.bars?.at(-1)?.date||null,reason:''};
