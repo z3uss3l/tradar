@@ -2576,7 +2576,15 @@ const QT12Dependency=(()=>{
   return varx>0?cov/varx:null;
  }
  function pair(a,b){
-  const rows=align(returns(a),returns(b)),tail=n=>rows.slice(-n);
+  const bByDate=new Map(cleanBars(b).map(x=>[x[0],x[1]]));
+  const common=cleanBars(a).filter(x=>bByDate.has(x[0]));
+  const rows=[];
+  for(let i=1;i<common.length;i++){
+   const prev=common[i-1],curr=common[i],prevB=bByDate.get(prev[0]),currB=bByDate.get(curr[0]);
+   const ra=Math.log(curr[1]/prev[1]),rb=Math.log(currB/prevB);
+   if(Number.isFinite(ra)&&Number.isFinite(rb))rows.push([ra,rb,curr[0]]);
+  }
+  const tail=n=>rows.slice(-n);
   const down=rows.filter(x=>x[0]<0&&x[1]<0);
   const lags=[];
   for(let lag=-5;lag<=5;lag++){
