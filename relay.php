@@ -1,105 +1,231 @@
 <?php
 declare(strict_types=1);
-// QuantTrend: allowlisted, read-only relay. PHP 8.1+; cURL preferred, verified HTTPS streams as fallback.
-header('X-Content-Type-Options: nosniff');
-header('Cache-Control: no-store');
-function reply(int $status, string $message, int $retry=0): void {
-    http_response_code($status); header('Content-Type: application/json; charset=utf-8');
-    if ($retry>0) header('Retry-After: '.max(1,$retry));
-    echo json_encode(['error'=>$message],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit;
-}
-if (($_SERVER['REQUEST_METHOD']??'GET')!=='GET') reply(405,'Nur GET erlaubt.');
-if (!extension_loaded('curl') && !filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) reply(503,'Weder PHP-cURL noch allow_url_fopen ist aktiviert.');
-$url=$_GET['url']??'';
-if (!is_string($url)||strlen($url)>4096) reply(400,'Ungültige Zieladresse.');
-$u=parse_url($url);
-if (!$u||($u['scheme']??'')!=='https'||isset($u['user'])||isset($u['pass'])||isset($u['fragment'])||isset($u['port'])) reply(400,'Nur freigegebene HTTPS-Ziele ohne Zugangsdaten.');
-$host=strtolower($u['host']??''); $path=$u['path']??'/';
-$allowed=[
- 'query1.finance.yahoo.com'=>'~^/v8/finance/chart/[A-Za-z0-9%._=^-]+$~D',
- 'query2.finance.yahoo.com'=>'~^/v8/finance/chart/[A-Za-z0-9%._=^-]+$~D',
- 'stooq.com'=>'~^/q/d/l/$~D',
- 'data-api.binance.vision'=>'~^/api/v3/klines$~D',
- 'api.binance.com'=>'~^/api/v3/klines$~D',
- 'api.gdeltproject.org'=>'~^/api/v2/doc/doc/?$~D',
- 'data-api.ecb.europa.eu'=>'~^/service/data/(EXR|FM)/[A-Za-z0-9.]+$~D',
- 'api.frankfurter.dev'=>'~^/(v2/rates|v1/latest)$~D',
- 'ec.europa.eu'=>'~^/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_(minr|manr)$~D',
- 'api.bls.gov'=>'~^/publicAPI/v2/timeseries/data/LNS14000000$~D',
- 'fred.stlouisfed.org'=>'~^/graph/fredgraph.csv$~D',
- 'earthquake.usgs.gov'=>'~^/fdsnws/event/1/query$~D',
- 'www.ecb.europa.eu'=>'~^/rss/press.html$~D',
- 'www.federalreserve.gov'=>'~^/feeds/press_all.xml$~D',
- 'www.tagesschau.de'=>'#^/(?:infoservices/alle-meldungen-100|ausland/index|wirtschaft/index|wirtschaft/technologie/index)~rss2\.xml$#D',
- 'www.deutschlandfunk.de'=>'~^/nachrichten-100\.rss$~D',
- 'news.google.com'=>'~^/rss/search$~D'
-];
-// The tilde in the Tagesschau filename is literal.
-// All four configured Tagesschau feeds are allowlisted above.
-if (!isset($allowed[$host])||!preg_match($allowed[$host],$path)) reply(403,'Ziel ist nicht als Datenquelle freigegeben.');
-parse_str($u['query']??'',$params);
-foreach(array_keys($params) as $key) if(preg_match('/key|token|secret|password|auth/i',(string)$key)) reply(403,'API-Schlüssel werden nicht über diesen Relay übertragen.');
-if ($host==='fred.stlouisfed.org'&&($params['id']??'')!=='UNRATE') reply(403,'Nur die konfigurierte FRED-Reihe UNRATE ist erlaubt.');
-// The Google endpoint is narrowly limited to the RSS search with the configured DE locale.
-if ($host==='news.google.com') {
-    if (array_diff(array_keys($params),['q','hl','gl','ceid']) || !is_string($params['q']??null)
-        || strlen($params['q'])>400 || trim($params['q'])===''
-        || ($params['hl']??null)!=='de' || ($params['gl']??null)!=='DE'
-        || ($params['ceid']??null)!=='DE:de') reply(403,'Google News RSS: Nur die konfigurierte öffentliche DE-Suchabfrage ist erlaubt.');
-}
-if (in_array($host,['www.deutschlandfunk.de','www.tagesschau.de','www.ecb.europa.eu','www.federalreserve.gov'],true)&&$params) reply(403,'RSS/Atom-Endpunkte erlauben keine Abfrageparameter.');
-if ($host==='api.gdeltproject.org'&&(($params['mode']??'')!=='artlist'||($params['format']??'')!=='json'||!is_scalar($params['maxrecords']??null)||(int)$params['maxrecords']>20)) reply(400,'Nur GDELT-Artikellisten mit maximal 20 Treffern.');
-ksort($params);$url='https://'.$host.$path.($params?'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986):'');
-$dir=rtrim(sys_get_temp_dir(),DIRECTORY_SEPARATOR).'/quanttrend-'.substr(hash('sha256',__DIR__),0,20);
-if(!is_dir($dir)&&!@mkdir($dir,0700,true)&&!is_dir($dir)) reply(503,'Cache-Verzeichnis nicht beschreibbar.');
-$key=hash('sha256',$url);$cache=$dir.'/'.$key.'.json';
-$ttl=in_array($host,['query1.finance.yahoo.com','query2.finance.yahoo.com','stooq.com'],true)?3600:
-    (in_array($host,['news.google.com','www.deutschlandfunk.de','www.tagesschau.de'],true)?600:900);
-function cached(string $file,int $ttl): ?array {if(!is_file($file)||time()-(int)filemtime($file)>$ttl)return null;$d=json_decode((string)@file_get_contents($file),true);return is_array($d)&&isset($d['body'],$d['type'])?$d:null;}
-function outputData(array $data,string $status): void {header('Content-Type: '.$data['type']);header('X-QuantTrend-Cache: '.$status);echo $data['body'];exit;}
-if($d=cached($cache,$ttl))outputData($d,'HIT');
-// Distinct topical RSS queries may run concurrently; identical requests retain an exclusive lock.
-$group=$host==='news.google.com'?'rss-google-'.$key:
-    (str_starts_with($host,'query')&&str_ends_with($host,'.finance.yahoo.com')?'yahoo':$host);
-$lock=@fopen($dir.'/'.hash('sha256',$group).'.lock','c+');
-if(!$lock||!flock($lock,LOCK_EX|LOCK_NB))reply(503,'Quelle wird bereits abgefragt. Später erneut versuchen.',15);
-if($d=cached($cache,$ttl))outputData($d,'HIT');
-rewind($lock);$state=json_decode((string)stream_get_contents($lock),true)?:[];
-function remember($lock,array $state): void {rewind($lock);ftruncate($lock,0);fwrite($lock,json_encode($state));fflush($lock);}
-$now=microtime(true);$until=(float)($state['until']??0);
-if($until>$now)reply(429,'Anbieter pausiert bis '.gmdate('c',(int)ceil($until)).'. Cache und vorhandene Daten bleiben erhalten.',(int)ceil($until-$now));
-$isGdelt=$host==='api.gdeltproject.org';
-if($isGdelt&&$now-(float)($state['last']??0)<6)reply(429,'Zentrale GDELT-Abfragepause aktiv.',(int)ceil(6-($now-(float)$state['last'])));
-$state['last']=$now;remember($lock,$state);
-$body='';$headers=[];$tooLarge=false;$status=0;$ok=false;
-if(extension_loaded('curl')){
-    $ch=curl_init($url);
-    curl_setopt_array($ch,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>30,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_USERAGENT=>'QuantTrend/12.0.1 (personal research; cached public data)',CURLOPT_ENCODING=>'',CURLOPT_HEADERFUNCTION=>function($c,$line)use(&$headers){$pair=explode(':',$line,2);if(count($pair)===2)$headers[strtolower(trim($pair[0]))]=trim($pair[1]);return strlen($line);},CURLOPT_WRITEFUNCTION=>function($c,$chunk)use(&$body,&$tooLarge){if(strlen($body)+strlen($chunk)>20*1024*1024){$tooLarge=true;return 0;}$body.=$chunk;return strlen($chunk);}]);
-    $ok=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);
-}else{
-    // No redirects, no compression, verified TLS, fixed HTTPS allowlist and bounded read.
-    $context=stream_context_create([
-        'http'=>['method'=>'GET','timeout'=>30,'ignore_errors'=>true,'follow_location'=>0,'max_redirects'=>0,
-            'protocol_version'=>1.1,'header'=>"User-Agent: QuantTrend/12.0.1 (personal research; cached public data)\r\nAccept-Encoding: identity\r\n"],
-        'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'allow_self_signed'=>false,'SNI_enabled'=>true,'peer_name'=>$host]
-    ]);
-    $stream=@fopen($url,'rb',false,$context);
-    if($stream!==false){
-        foreach(($http_response_header??[]) as $index=>$line){
-            if($index===0&&preg_match('~^HTTP/\S+\s+(\d{3})~',$line,$match))$status=(int)$match[1];
-            elseif(($pair=explode(':',$line,2))&&count($pair)===2)$headers[strtolower(trim($pair[0]))]=trim($pair[1]);
+
+/**
+ * QuantTrend AI v12.0.7 — Same-Origin SSRF-Hardened Public Data Relay
+ */
+final class SafeHttpClient
+{
+    public const USER_AGENT = 'QuantTrend 12.0.7';
+    private const MAX_BYTES = 8388608; // 8 MB
+    private const MAX_REDIRECTS = 3;
+
+    /** @var string[] */
+    private array $allowlist;
+
+    /** @param string[] $allowlist */
+    public function __construct(array $allowlist = [])
+    {
+        $defaultHosts = [
+            'query1.finance.yahoo.com',
+            'query2.finance.yahoo.com',
+            'stooq.com',
+            'api.binance.com',
+            'data-api.ecb.europa.eu',
+            'api.fiscaldata.treasury.gov',
+            'api.frankfurter.app',
+            'api.gdeltproject.org',
+            'earthquake.usgs.gov',
+            'api.bls.gov',
+            'ec.europa.eu',
+            'www.tagesschau.de',
+            'www.ecb.europa.eu',
+        ];
+        $this->allowlist = array_values(array_unique(array_map('strtolower', $allowlist ?: $defaultHosts)));
+    }
+
+    public static function isPublicIp(string $ip): bool
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
         }
-        $read=stream_get_contents($stream,20*1024*1024+1);fclose($stream);
-        if($read!==false){$body=$read;$tooLarge=strlen($body)>20*1024*1024;$ok=!$tooLarge&&$status===200&&$body!=='';}
+        $blockedExact = ['169.254.169.254', '169.254.170.2', '100.100.100.200', '192.0.0.192'];
+        return !in_array($ip, $blockedExact, true);
+    }
+
+    /** @return string[] */
+    private function resolveAndValidateHost(string $host): array
+    {
+        $normalized = rtrim(strtolower(trim($host)), '.');
+        if ($normalized === '' || !in_array($normalized, $this->allowlist, true)) {
+            throw new RuntimeException('Host nicht auf der Allowlist: ' . $host);
+        }
+
+        $ips = [];
+        $recordsA = @dns_get_record($normalized, DNS_A);
+        if (is_array($recordsA)) {
+            foreach ($recordsA as $rec) {
+                if (!empty($rec['ip'])) {
+                    $ips[] = (string)$rec['ip'];
+                }
+            }
+        }
+        $recordsAAAA = @dns_get_record($normalized, DNS_AAAA);
+        if (is_array($recordsAAAA)) {
+            foreach ($recordsAAAA as $rec) {
+                if (!empty($rec['ipv6'])) {
+                    $ips[] = (string)$rec['ipv6'];
+                }
+            }
+        }
+        if ($ips === []) {
+            $fallback = gethostbynamel($normalized);
+            if (is_array($fallback)) {
+                $ips = $fallback;
+            }
+        }
+        if ($ips === []) {
+            throw new RuntimeException('DNS-Auflösung fehlgeschlagen für: ' . $normalized);
+        }
+
+        foreach ($ips as $ip) {
+            if (!self::isPublicIp($ip)) {
+                throw new RuntimeException('Nicht-öffentliche Ziel-IP blockiert: ' . $ip);
+            }
+        }
+        return array_values(array_unique($ips));
+    }
+
+    public function validateUrl(string $url): array
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            throw new InvalidArgumentException('Ungültige URL.');
+        }
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        if ($scheme !== 'https') {
+            throw new InvalidArgumentException('Nur HTTPS-URLs erlaubt.');
+        }
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            throw new InvalidArgumentException('Userinfo in URL nicht erlaubt.');
+        }
+        if (isset($parts['port']) && (int)$parts['port'] !== 443) {
+            throw new InvalidArgumentException('Nur Standard-HTTPS-Port 443 erlaubt.');
+        }
+        $host = (string)($parts['host'] ?? '');
+        if ($host === '' || str_ends_with($host, '.')) {
+            throw new InvalidArgumentException('Ungültiger oder Trailing-Dot-Host.');
+        }
+        $ips = $this->resolveAndValidateHost($host);
+        return ['host' => strtolower($host), 'ip' => $ips[0]];
+    }
+
+    public function fetch(string $url): array
+    {
+        if (!function_exists('curl_init')) {
+            throw new RuntimeException('PHP cURL-Erweiterung fehlt.');
+        }
+
+        $currentUrl = $url;
+        for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+            $target = $this->validateUrl($currentUrl);
+            $host = $target['host'];
+            $pinnedIp = str_contains($target['ip'], ':') ? '[' . $target['ip'] . ']' : $target['ip'];
+
+            $ch = curl_init($currentUrl);
+            $body = '';
+            $headersOut = [];
+
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => false,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => 8,
+                CURLOPT_TIMEOUT        => 20,
+                CURLOPT_USERAGENT      => self::USER_AGENT,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_CONNECT_TO     => ["{$host}:443:{$pinnedIp}:443"],
+                CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$headersOut): int {
+                    $len = strlen($line);
+                    $parts = explode(':', $line, 2);
+                    if (count($parts) === 2) {
+                        $headersOut[strtolower(trim($parts[0]))] = trim($parts[1]);
+                    }
+                    return $len;
+                },
+                CURLOPT_WRITEFUNCTION  => static function ($curl, string $chunk) use (&$body): int {
+                    $len = strlen($chunk);
+                    if (strlen($body) + $len > self::MAX_BYTES) {
+                        return 0;
+                    }
+                    $body .= $chunk;
+                    return $len;
+                },
+            ]);
+
+            if (defined('CURLOPT_PROTOCOLS_STR')) {
+                curl_setopt($ch, CURLOPT_PROTOCOLS_STR, 'https');
+                curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS_STR, 'https');
+            } elseif (defined('CURLPROTO_HTTPS')) {
+                curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+            }
+
+            $execOk = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            if ($execOk === false && $status === 0) {
+                return ['ok' => false, 'status' => 0, 'error' => $err ?: 'cURL-Fehler', 'body' => '', 'headers' => $headersOut];
+            }
+
+            if (in_array($status, [301, 302, 303, 307, 308], true) && !empty($headersOut['location'])) {
+                $next = $headersOut['location'];
+                if (!str_starts_with($next, 'https://')) {
+                    throw new RuntimeException('Unsicherer Redirect blockiert.');
+                }
+                $currentUrl = $next;
+                continue;
+            }
+
+            return [
+                'ok'        => $status >= 200 && $status < 300,
+                'status'    => $status,
+                'body'      => $body,
+                'headers'   => $headersOut,
+                'final_url' => $currentUrl,
+            ];
+        }
+
+        throw new RuntimeException('Zu viele Redirects.');
     }
 }
-$limited=$status===429||($isGdelt&&preg_match('/please limit requests|too many requests|one (?:request )?every (?:5|five) seconds/i',$body));
-if($limited){$strikes=min(5,(int)($state['strikes']??0)+1);$retry=$headers['retry-after']??'';$seconds=is_numeric($retry)?(float)$retry:max(0,(strtotime($retry)?:0)-time());$pause=max($seconds,min(1800,60*(2**($strikes-1))));$state['until']=microtime(true)+$pause;$state['strikes']=$strikes;remember($lock,$state);reply(429,'Anbieter-Abfragelimit. Zentrale Pause aktiv; kein erneuter Abruf vor '.gmdate('c',(int)ceil($state['until'])).'.',(int)ceil($pause));}
-if($ok===false||$status!==200||$body===''){$state['until']=microtime(true)+30;remember($lock,$state);reply(502,$tooLarge?'Anbieterantwort überschreitet 20 MB.':'Quelle derzeit nicht abrufbar'.($status?' (HTTP '.$status.')':' (Verbindung/Zeitlimit)').'.',30);}
-if($isGdelt){$j=json_decode($body,true);if(!is_array($j)||!isset($j['articles'])||!is_array($j['articles'])){$state['until']=microtime(true)+60;remember($lock,$state);reply(502,'GDELT liefert keine gültige Artikelliste.',60);}}
-$type='text/plain; charset=utf-8';$trim=ltrim($body);if(str_starts_with($trim,'{')||str_starts_with($trim,'['))$type='application/json; charset=utf-8';elseif(str_starts_with($trim,'<')){if(preg_match('/<(?:!doctype\\s+html|html)\\b/i',$trim))reply(502,'Anbieter liefert HTML statt Daten.');$type='application/xml; charset=utf-8';}
-$state['until']=0;$state['strikes']=0;remember($lock,$state);
-$data=['body'=>$body,'type'=>$type];$tmp=tempnam($dir,'write-');if($tmp!==false){chmod($tmp,0600);if(file_put_contents($tmp,json_encode($data,JSON_INVALID_UTF8_SUBSTITUTE))!==false)rename($tmp,$cache);else @unlink($tmp);}
-// Bounded cleanup of expired cache entries; locks are never removed.
-if(random_int(1,20)===1){$n=0;foreach(glob($dir.'/*.json')?:[] as $old){if(++$n>200)break;if(time()-(int)filemtime($old)>86400)@unlink($old);}}
-outputData($data,'MISS');
+
+if (PHP_SAPI !== 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+
+    $targetUrl = (string)($_GET['url'] ?? '');
+    if ($targetUrl === '') {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Parameter url fehlt.']);
+        exit;
+    }
+
+    try {
+        $client = new SafeHttpClient();
+        $res = $client->fetch($targetUrl);
+        if (!$res['ok']) {
+            http_response_code($res['status'] >= 400 ? $res['status'] : 502);
+            echo json_encode([
+                'ok'     => false,
+                'status' => $res['status'],
+                'error'  => $res['error'] ?? ('Upstream HTTP ' . $res['status']),
+            ], JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+        echo json_encode([
+            'ok'           => true,
+            'relay'        => SafeHttpClient::USER_AGENT,
+            'status'       => $res['status'],
+            'content_type' => $res['headers']['content-type'] ?? 'application/octet-stream',
+            'body'         => $res['body'],
+        ], JSON_UNESCAPED_SLASHES);
+    } catch (InvalidArgumentException $e) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_SLASHES);
+    }
+}
