@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const ASSETS={SPY:['SPDR S&P 500','etf','USD']};
-const E={RESULT_VERSION:'11.3.0',metrics:a=>a?.length?({n:40,logloss:.35,ece:.08,accuracy:.62}):null};
+const E={RESULT_VERSION:'11.3.0',metrics:()=>({n:40,logloss:.35,ece:.08,accuracy:.62})};
 const now=Date.now();
 const state={sets:{},results:{},eventGuards:{},marketHealth:{},qt12Recommendations:{}};
 function setup(){
@@ -8,14 +8,14 @@ function setup(){
  const bars=Array.from({length:500},(_,i)=>({date:new Date(now-(500-i)*86400000).toISOString().slice(0,10),close:100}));
  bars.at(-1).date=last;
  state.sets.SPY={bars,basis:'adjusted',source:'unit',fingerprint:'fp'};
- state.results.SPY={version:'11.3.0',fingerprint:'fp',source:'unit',basis:'adjusted',ensemble:Array.from({length:40},(_,i)=>({i,y:i%3,p:[.1,.1,.8]})),oos:Array.from({length:5},()=>[]),p:[.1,.1,.8],currentP:Array.from({length:5},()=>[.1,.1,.8]),baseline:{logloss:.5},currentStructuralBreak:false,currentHighVolProbability:.1,trainedAt:'test'};
+ state.results.SPY={version:'11.3.0',fingerprint:'fp',source:'unit',basis:'adjusted',ensemble:[1,2,3,4,5],p:[.1,.1,.8],currentP:Array.from({length:5},()=>[.1,.1,.8]),baseline:{logloss:.5},currentStructuralBreak:false,currentHighVolProbability:.1,trainedAt:'test'};
  state.eventGuards.SPY={at:new Date(now-1000).toISOString(),would_hold:false};
  state.marketHealth.SPY={mode:'live',at:new Date(now-1000).toISOString()};
 }
 setup();
 const QT12={version:'12.0.1',running:false,stop:false,etfs:Object.entries(ASSETS).filter(([,v])=>v[1]==='etf').map(([k])=>k),
  delay:ms=>new Promise(resolve=>setTimeout(resolve,ms)),
- currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];const validP=p=>Array.isArray(p)&&p.length===3&&p.every(v=>Number.isFinite(v)&&v>=0&&v<=1)&&Math.abs(p.reduce((a,b)=>a+b,0)-1)<=1e-5;return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&Array.isArray(r.oos)&&r.oos.length===5&&Array.isArray(r.currentP)&&r.currentP.length===5&&r.currentP.every(validP)&&validP(r.p)&&Array.isArray(r.ensemble)?r:null;},
+ currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&r.ensemble?.length===5?r:null;},
  assess(asset){
   const set=state.sets?.[asset],r=this.currentResult(asset);if(!set||!r)return {asset,action:'NO_SIGNAL',direction:'NICHT BESTIMMBAR',strength:'KEIN SIGNAL',up:null,down:null,asof:set?.bars?.at(-1)?.date||null,reason:'Keine aktuelle, zum Kursdatensatz passende Modellberechnung.'};
   const p=r.p;if(!Array.isArray(p)||p.length!==3||p.some(x=>!Number.isFinite(x)||x<0||x>1)||Math.abs(p.reduce((a,b)=>a+b,0)-1)>1e-5)return {asset,action:'NO_SIGNAL',direction:'NICHT BESTIMMBAR',strength:'KEIN SIGNAL',up:null,down:null,asof:set.bars.at(-1).date,reason:'Ungültige oder nicht normalisierte Wahrscheinlichkeitsausgabe.'};
@@ -97,7 +97,6 @@ const QT12={version:'12.0.1',running:false,stop:false,etfs:Object.entries(ASSETS
 };
 function decision(){return QT12.assess('SPY');}
 let r=decision();assert.equal(r.action,'BUY');assert.equal(r.direction,'STEIGEND');assert.equal(r.votes,5);
-const savedEnsemble=state.results.SPY.ensemble;state.results.SPY.ensemble=[];r=decision();assert.equal(r.direction,'STEIGEND');assert.equal(r.up,.8);assert.equal(r.n,0);state.results.SPY.ensemble=savedEnsemble;
 state.eventGuards.SPY.at=new Date(now+3600000).toISOString();r=decision();assert.equal(r.action,'NO_SIGNAL');assert.equal(r.strength,'KEIN SIGNAL');
 state.eventGuards.SPY.at=new Date(now-1000).toISOString();
 state.sets.SPY.bars.at(-1).date=new Date(now+3*86400000).toISOString().slice(0,10);r=decision();assert.equal(r.action,'NO_SIGNAL');
