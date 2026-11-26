@@ -2583,6 +2583,7 @@ const QT12Dependency=(()=>{
   const best=lags.filter(x=>x.r!==null).sort((x,y)=>Math.abs(y.r)-Math.abs(x.r))[0]||null;
   return {rows,n:rows.length,c20:corr(tail(20)),c60:corr(tail(60)),c120:corr(tail(120)),down:corr(down),downN:down.length,beta:beta(tail(60)),bestLag:best};
  }
+ function compute(){
   const pairs=[];
   for(let i=0;i<assets.length;i++)for(let j=i+1;j<assets.length;j++)pairs.push({a:assets[i],b:assets[j],...pair(assets[i],assets[j])});
   const valid=pairs.filter(p=>p.c60!==null);
