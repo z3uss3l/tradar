@@ -2505,9 +2505,10 @@ const QT12={version:'12.0.5',running:false,stop:false,priority:ETF_PRIORITY.slic
     if(!sourceLoading&&!busy){try{const sourceResult=await loadSources(false,{assetOnly:globalSourcesLoaded,portfolioRun:true,onProgress:progress=>{$('qt12Status').textContent=`ETF ${processed}/${this.etfs.length}: ${asset} · Quellenprüfung ${progress}${globalSourcesLoaded?' · assetbezogen':' · global + assetbezogen'}`;}});if(!globalSourcesLoaded)globalSourcesLoaded=true;if(sourceResult?.cancelled)throw fault('CANCEL','Quellenprüfung wurde abgebrochen.');}catch(sourceError){if(sourceError?.code==='CANCEL')throw sourceError;state.eventGuards||={};state.eventGuards[asset]={at:new Date().toISOString(),would_hold:null,status:'unavailable',reason:cleanError(sourceError)};log('warn','QuantTrend '+asset+': Quellenabruf fehlgeschlagen: '+cleanError(sourceError));}}
     if(this.stop)break;
     set=state.sets?.[asset];if(!set){results[asset]={asset,action:'NO_SIGNAL',direction:'NICHT BESTIMMBAR',strength:'KEIN SIGNAL',up:null,down:null,asof:null,reason:'Keine echte Kursreihe verfügbar.'};failed++;state.qt12Recommendations=results;this.render();await save();continue;}
-    if(this.currentResult(asset)){
-      // Keep current model only if data fingerprint and source still match.
-    }else{
+    // The portfolio command is an explicit training run: retrain every ETF,
+    // even when a valid model already exists for the current data fingerprint.
+    // This prevents a data-only pass from being reported as a completed training run.
+    {
       const before=state.results?.[asset]||null;
       $('qt12Status').textContent=`ETF ${processed}/${this.etfs.length}: ${asset} · fünf Modelle werden separat trainiert …`;
       state.qt12TrainingErrors||={};delete state.qt12TrainingErrors[asset];await startTrain();
