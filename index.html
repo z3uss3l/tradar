@@ -1440,7 +1440,7 @@ function newsAuthority(url,analysis){
 async function fetchQualityFeeds(asset,epoch){
     state.newsFeeds||={};
     const queue=NEWS_FEEDS.filter(feed=>{const cached=state.newsFeeds[feed.id],age=Date.now()-Date.parse(cached?.lastSuccess);return !(cached?.ok&&age>=0&&age<15*60e3)});
-    await Promise.all(Array.from({length:Math.min(3,queue.length)},async()=>{
+    await Promise.all(Array.from({length:Math.min(1,queue.length)},async()=>{
      while(queue.length&&epoch===networkEpoch){
       const feed=queue.shift();
       try{
@@ -1645,14 +1645,15 @@ async function syncEventsServer(asset=state.asset){
     const chunks=[];
     for(let n=0;n<items.length;n+=100)chunks.push(items.slice(n,n+100));
     const processed=new Array(chunks.length),endpoint=new URL('events.php?action=analyze',location.href);
+    const firstSeenByStory=new Map();for(const row of state.eventArchive?.[asset]||[]){const key=JSON.stringify([row.title,row.url]);if(!firstSeenByStory.has(key))firstSeenByStory.set(key,row.first_seen_at||null)}
     let next=0;
     try{
         await Promise.all(Array.from({length:Math.min(3,chunks.length)},async()=>{
             while(next<chunks.length){
                 const index=next++,part=chunks[index],abort=new AbortController(),timer=setTimeout(()=>abort.abort(),25000);
                 try{
-                    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',signal:abort.signal,body:JSON.stringify({asset,items:part.map(x=>({title:x.title,date:x.date,url:x.url,key:x.key,first_seen_at:(state.eventArchive?.[asset]||[]).find(a=>a.title===x.title&&a.url===x.url)?.first_seen_at||new Date().toISOString()}))})});
-                    const data=await response.json();
+                    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',signal:abort.signal,body:JSON.stringify({asset,items:part.map(x=>({title:x.title,date:x.date,url:x.url,key:x.key,first_seen_at:firstSeenByStory.get(JSON.stringify([x.title,x.url]))||new Date().toISOString()}))})});
+                    const data=JSON.parse(await readBoundedResponseText(response));
                     if(!response.ok||!data.ok||!Array.isArray(data.analyses)||data.analyses.length!==part.length)throw Error(data.error||'Ungültige Ereignisantwort (HTTP '+response.status+').');
                     processed[index]=data;
                 }finally{clearTimeout(timer)}
@@ -1843,7 +1844,7 @@ async function sourceFetch(key,asset=state.asset,epoch=networkEpoch){const slot=
  if(epoch!==networkEpoch)break;if(parsed.value!==null&&Date.now()-Date.parse(parsed.observed_at)>parsed.max_age_days*864e5)throw fault('STALE','Quelle liefert einen veralteten Messwert: '+parsed.observed_at);acceptEvent(key,asset,parsed);state.sources[slot].attempts=attempts;log('ok',CATS[key][0]+': '+parsed.summary);await save();return true}catch(e){attempts.push(route.source+': '+cleanError(e));if(e.code==='CANCEL')break}}
 if(epoch===networkEpoch&&await rssCategoryFallback(key,asset,attempts))return true;
 const err=epoch!==networkEpoch?'Abruf abgebrochen.':attempts.join(' | ');state.sources[slot]={...(previous||{}),ok:false,mode:(previous?.lastSuccess||previous?.ok)?'cache':'unavailable',lastSuccess:previous?.lastSuccess||(previous?.ok?previous.at:null),lastAttempt:new Date().toISOString(),error:err,attempts};log('warn',CATS[key][0]+': '+err);await save();return false}
-async function loadSources(retryOnly=false,options={}){retryOnly=retryOnly===true;options=options&&typeof options==='object'?options:{};if(sourceLoading||busy||marketLoading||(typeof QT12!=='undefined'&&QT12.running&&!options.portfolioRun)){const reason=busy?'Modelltraining läuft bereits.':sourceLoading?'Quellen werden bereits eingelesen.':marketLoading?'Kursdatenabruf läuft bereits; Quellenabruf wird danach freigegeben.':'Der ETF-Gesamtlauf hat Vorrang.';if(!options.silent)toast(reason);return null;}sourceLoading=true;const asset=state.asset,epoch=networkEpoch,assetKeys=['sectorNews','earnings'];const keys=Object.keys(CATS).filter(k=>state.events[k].enabled&&(!options.assetOnly||assetKeys.includes(k))&&(!retryOnly||!sourceState(k,asset)?.ok));$('live').disabled=true;$('eventRetryBtn').disabled=true;let done=0,ok=0;try{if(!options.assetOnly)await fetchQualityFeeds(asset,epoch);let queue=keys.slice();await Promise.all(Array.from({length:Math.min(3,keys.length)},async()=>{while(queue.length&&epoch===networkEpoch){let key=queue.shift();if(await sourceFetch(key,asset,epoch))ok++;done++;const progress=`${done}/${keys.length} geprüft · ${ok} erfolgreich · ${done-ok} ohne neue Daten`;$('sourceProgress').textContent=progress;if(options.portfolioRun&&typeof options.onProgress==='function')options.onProgress(progress);renderEvents()}}));const failed=done-ok,unattempted=keys.length-done,cancelled=epoch!==networkEpoch,summary=`${cancelled?'Abgebrochen':'Abgeschlossen'} · ${ok}/${keys.length} aktualisiert${failed?` · ${failed} mit Fehler/Cache`:''}${unattempted?` · ${unattempted} nicht begonnen`:''}.`;$('sourceProgress').textContent=summary+' Vorhandene Inhalte bleiben erhalten.';log(cancelled||failed?'warn':'ok','Quellenabruf: '+summary+(options.assetOnly?' · assetbezogene Quellen':' · globale und assetbezogene Quellen'));if(!cancelled){if(!(await syncEventsServer(asset))){captureNews(asset);state.eventGuards||={};state.eventGuards[asset]={at:new Date().toISOString(),would_hold:null,status:'unavailable',reason:'Keine vollständige serverseitige Ereignisprüfung verfügbar.'};renderEventGuardStatus(asset);if(typeof QT12!=='undefined')QT12.render();}renderNews()}await save();return {ok,failed,unattempted,cancelled,summary}}finally{sourceLoading=false;$('live').disabled=busy;$('eventRetryBtn').disabled=busy;renderEvents()}}
+async function loadSources(retryOnly=false,options={}){retryOnly=retryOnly===true;options=options&&typeof options==='object'?options:{};if(sourceLoading||busy||marketLoading||(typeof QT12!=='undefined'&&QT12.running&&!options.portfolioRun)){const reason=busy?'Modelltraining läuft bereits.':sourceLoading?'Quellen werden bereits eingelesen.':marketLoading?'Kursdatenabruf läuft bereits; Quellenabruf wird danach freigegeben.':'Der ETF-Gesamtlauf hat Vorrang.';if(!options.silent)toast(reason);return null;}sourceLoading=true;const asset=state.asset,epoch=networkEpoch,assetKeys=['sectorNews','earnings'];const keys=Object.keys(CATS).filter(k=>state.events[k].enabled&&(!options.assetOnly||assetKeys.includes(k))&&(!retryOnly||!sourceState(k,asset)?.ok));$('live').disabled=true;$('eventRetryBtn').disabled=true;let done=0,ok=0;try{if(!options.assetOnly)await fetchQualityFeeds(asset,epoch);let queue=keys.slice();await Promise.all(Array.from({length:Math.min(1,keys.length)},async()=>{while(queue.length&&epoch===networkEpoch){let key=queue.shift();if(await sourceFetch(key,asset,epoch))ok++;done++;const progress=`${done}/${keys.length} geprüft · ${ok} erfolgreich · ${done-ok} ohne neue Daten`;$('sourceProgress').textContent=progress;if(options.portfolioRun&&typeof options.onProgress==='function')options.onProgress(progress)}}));const failed=done-ok,unattempted=keys.length-done,cancelled=epoch!==networkEpoch,summary=`${cancelled?'Abgebrochen':'Abgeschlossen'} · ${ok}/${keys.length} aktualisiert${failed?` · ${failed} mit Fehler/Cache`:''}${unattempted?` · ${unattempted} nicht begonnen`:''}.`;$('sourceProgress').textContent=summary+' Vorhandene Inhalte bleiben erhalten.';log(cancelled||failed?'warn':'ok','Quellenabruf: '+summary+(options.assetOnly?' · assetbezogene Quellen':' · globale und assetbezogene Quellen'));if(!cancelled){if(!(await syncEventsServer(asset))){captureNews(asset);state.eventGuards||={};state.eventGuards[asset]={at:new Date().toISOString(),would_hold:null,status:'unavailable',reason:'Keine vollständige serverseitige Ereignisprüfung verfügbar.'};renderEventGuardStatus(asset);if(typeof QT12!=='undefined')QT12.render();}renderNews()}await save();return {ok,failed,unattempted,cancelled,summary}}finally{sourceLoading=false;$('live').disabled=busy;$('eventRetryBtn').disabled=busy;renderEvents()}}
 async function refreshAll(auto=false){return (async()=>{if(busy||marketLoading||sourceLoading||(typeof QT12!=='undefined'&&QT12.running))return;const epoch=networkEpoch;let changed=await loadMarket();if(epoch!==networkEpoch)return;await loadSources(false);if(epoch!==networkEpoch)return;if(auto&&(changed||(!result()&&active())||(result()&&result().factorSignature!==JSON.stringify(effectiveFactors().concat(contextFactors().rows))))&&!busy)startTrain()})()}
 function sourceLabel(s){if(!s)return 'offen';if(!s.ok)return s.lastSuccess?'Cache · Abruffehler':'Abruf fehlgeschlagen';if(s.value!==null&&s.value!==undefined&&(!eventDate(s.observed_at)||Date.now()-Date.parse(s.observed_at)>(s.max_age_days||120)*864e5))return 'Messwert veraltet';if(Date.now()-Date.parse(s.lastSuccess||s.at)>864e5)return 'Cache · älter als 24 h';return s.value!==null&&s.value!==undefined?'Messwert':'Kontext'}
 function renderEvents(){if($('categories').contains(document.activeElement)&&document.activeElement.matches('input[type=range]')){renderFeed();renderFactorUsage();renderMarketHealth();return}let region=$('region').value,h=$('eventHorizon').value;$('categories').innerHTML=Object.entries(CATS).filter(([k,c])=>(region==='all'||region===c[1])&&(h==='all'||h===c[2])).map(([k,c])=>{let e=state.events[k],src=sourceState(k);return `<div class="category"><div class="row between"><label class="inline"><input type="checkbox" data-toggle="${k}" ${e.enabled?'checked':''}><strong>${c[0]}</strong></label><span class="chip ${src?.ok?'green':src?'amber':''}">${esc(sourceLabel(src))}</span></div><input aria-label="${c[0]} Szenario" type="range" data-direction="${k}" min="-1" max="1" step="0.05" value="${e.direction}"><div class="row between"><small>${c[1].toUpperCase()} · ${c[2]} · Szenario</small><output id="dir-${k}">${fmt(e.direction)}</output></div><small>${esc(src?.summary||'Keine Marktrichtung aus fehlenden Daten abgeleitet.')}${src?.error?`<br><span class="amber">${esc(src.error)}</span>`:''}<br>${['fx','centralbanks','macro','jobs','disasters'].includes(k)?'Numerischer Faktor · erst ab dokumentierter Verfügbarkeit':'Nachrichtenkontext · gerichtete Merkmale über Textanalyse'}</small></div>`}).join('');renderFeed();renderScenario();$('factorInventory').textContent=Object.entries(state.factors.reduce((a,f)=>(a[f.key]=(a[f.key]||0)+1,a),{})).map(([k,n])=>k+': '+n+' Beobachtungen').join(' · ')||'Noch keine Faktorhistorie.';renderFactorUsage();renderMarketHealth()}
@@ -1903,6 +1904,21 @@ function renderEventInspector(){
     }).join('')||'<tr><td colspan="6">Keine Einträge für diese Auswahl.</td></tr>';
     if(selected.length>150){$('eventExplorerStatus').textContent+=` Tabelle zeigt 150 von ${selected.length}; der vollständige Archivexport enthält alle.`;}
 }
+async function readBoundedResponseText(response,maxBytes=20*1024*1024){
+    const declared=Number(response.headers.get('content-length'));
+    if(Number.isFinite(declared)&&declared>maxBytes)throw Error('Serverantwort überschreitet das mobile Sicherheitslimit von 20 MiB.');
+    if(!response.body?.getReader){const text=await response.text();if(new Blob([text]).size>maxBytes)throw Error('Serverantwort überschreitet das mobile Sicherheitslimit von 20 MiB.');return text;}
+    const reader=response.body.getReader(),decoder=new TextDecoder(),parts=[];let received=0;
+    try{
+        while(true){
+            const part=await reader.read();if(part.done)break;
+            received+=part.value.byteLength;
+            if(received>maxBytes){try{await reader.cancel()}catch{}throw Error('Serverantwort überschreitet das mobile Sicherheitslimit von 20 MiB.');}
+            parts.push(decoder.decode(part.value,{stream:true}));
+        }
+        parts.push(decoder.decode());return parts.join('');
+    }finally{try{reader.releaseLock()}catch{}}
+}
 async function eventApi(action,payload){
     if(!['https:','http:'].includes(location.protocol))throw Error('Die Event-API benötigt PHP-Hosting. Offline bleibt das gespeicherte Archiv verfügbar.');
     const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),30000);
@@ -1911,7 +1927,7 @@ async function eventApi(action,payload){
             method:payload===undefined?'GET':'POST',headers:payload===undefined?{}:{'Content-Type':'application/json'},
             body:payload===undefined?undefined:JSON.stringify(payload),signal:abort.signal,
             credentials:'same-origin',cache:'no-store'});
-        const data=await res.json().catch(()=>{throw Error('events.php antwortet nicht mit JSON (HTTP '+res.status+').');});
+        let data;try{data=JSON.parse(await readBoundedResponseText(res))}catch(error){throw Error('events.php liefert keine gültige bzw. vollständig begrenzte JSON-Antwort (HTTP '+res.status+'): '+cleanError(error));}
         if(!res.ok||!data.ok)throw Error(data.error||'Event-API HTTP '+res.status);
         return data;
     }finally{clearTimeout(timer)}
