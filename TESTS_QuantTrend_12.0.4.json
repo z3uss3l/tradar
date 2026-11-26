@@ -1,0 +1,20 @@
+{
+  "version": "12.0.4",
+  "checks": {
+    "javascript_syntax_all_executable_blocks": "PASS",
+    "php_events_lint": "PASS",
+    "php_relay_lint": "PASS",
+    "python_bridge_compile": "PASS",
+    "progress_counter_independent_of_success": "PASS",
+    "monitor_snapshot_persisted": "PASS",
+    "direction_independent_of_action_gate": "PASS",
+    "buy_sell_quality_gated": "PASS"
+  },
+  "javascript_blocks_checked": 12,
+  "not_verified": [
+    "live external ETF data fetch",
+    "production hosting environment",
+    "full browser end-to-end run",
+    "forecast hit rate"
+  ]
+}

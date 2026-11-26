@@ -1,0 +1,1270 @@
+{
+  "schema": "quanttrend-event-catalog/1",
+  "version": "11.3.0",
+  "description": "QuantTrend: versionierter zweisprachiger Finanzereigniskatalog (Regeln, eindeutige Beziehungen, Human-Interest-Sperren, materielle Ereignistypen). Textprioren sind keine gemessenen Renditen. Ohne OOS-Nachweis kein Handelssignal. | v11.3: bitemporale Provenienz, gerichtete Abhängigkeitsgraphen, ausführungsbezogene Event-Studien.",
+  "settings": {
+    "max_items": 120,
+    "max_age_days": 7,
+    "news_half_life_hours": 48,
+    "min_weight_for_full_signal": 3,
+    "indirect_etf_relevance": 0.18,
+    "uncertainty_discount": 0.5,
+    "max_headline_chars": 600,
+    "event_cluster_hours": 36,
+    "min_economic_severity": 0.0,
+    "max_matrix_assets": 8,
+    "max_study_cases": 2500,
+    "max_study_horizon_bars": 20,
+    "max_analysis_title_bytes": 2400,
+    "graph_max_depth": 3,
+    "graph_max_edges": 250
+  },
+  "sources": {
+    "official": {
+      "domains": [
+        "ecb.europa.eu",
+        "federalreserve.gov",
+        "sec.gov",
+        "bundesbank.de",
+        "bafin.de",
+        "bls.gov",
+        "ec.europa.eu",
+        "destatis.de",
+        "eia.gov",
+        "cftc.gov",
+        "auswaertiges-amt.de",
+        "bundesanzeiger.de",
+        "ted.europa.eu",
+        "europa.eu",
+        "census.gov",
+        "bea.gov",
+        "usgs.gov",
+        "bafa.de",
+        "eurostat.ec.europa.eu",
+        "commission.europa.eu"
+      ],
+      "weight": 1.0
+    },
+    "agency": {
+      "domains": [
+        "reuters.com",
+        "apnews.com",
+        "dpa.com",
+        "afp.com"
+      ],
+      "weight": 0.85
+    },
+    "public": {
+      "domains": [
+        "tagesschau.de",
+        "ard.de",
+        "deutschlandfunk.de",
+        "bbc.com",
+        "bbc.co.uk",
+        "zdfheute.de"
+      ],
+      "weight": 0.8
+    },
+    "editorial": {
+      "domains": [
+        "ft.com",
+        "bloomberg.com",
+        "wsj.com",
+        "handelsblatt.com",
+        "faz.net",
+        "sueddeutsche.de",
+        "zeit.de"
+      ],
+      "weight": 0.7
+    },
+    "unknown": {
+      "domains": [],
+      "weight": 0.25
+    }
+  },
+  "issuers": {
+    "NVDA": {
+      "name": "NVIDIA",
+      "aliases": [
+        "nvidia",
+        "nvda",
+        "nvidia corp",
+        "jensen huang"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "AAPL": {
+      "name": "Apple",
+      "aliases": [
+        "apple inc",
+        "apple aktie",
+        "apple shares",
+        "aapl",
+        "iphone"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "MSFT": {
+      "name": "Microsoft",
+      "aliases": [
+        "microsoft",
+        "msft",
+        "satya nadella"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "AMZN": {
+      "name": "Amazon",
+      "aliases": [
+        "amazon",
+        "amzn",
+        "aws",
+        "andy jassy"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "TSLA": {
+      "name": "Tesla",
+      "aliases": [
+        "tesla",
+        "tsla",
+        "tesla inc"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "GOOGL": {
+      "name": "Alphabet",
+      "aliases": [
+        "alphabet inc",
+        "google",
+        "googl",
+        "sundar pichai"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "META": {
+      "name": "Meta",
+      "aliases": [
+        "meta platforms",
+        "facebook parent",
+        "meta shares",
+        "mark zuckerberg"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "AMD": {
+      "name": "AMD",
+      "aliases": [
+        "advanced micro devices",
+        "amd",
+        "lisa su"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "INTC": {
+      "name": "Intel",
+      "aliases": [
+        "intel",
+        "intc"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "TSM": {
+      "name": "TSMC",
+      "aliases": [
+        "tsmc",
+        "taiwan semiconductor",
+        "tsm shares"
+      ],
+      "etf_candidates": [
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "AVGO": {
+      "name": "Broadcom",
+      "aliases": [
+        "broadcom",
+        "avgo"
+      ],
+      "etf_candidates": [
+        "QQQ",
+        "XLK",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "XOM": {
+      "name": "ExxonMobil",
+      "aliases": [
+        "exxonmobil",
+        "exxon mobil",
+        "xom"
+      ],
+      "etf_candidates": [
+        "XLE",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    },
+    "JPM": {
+      "name": "JPMorgan Chase",
+      "aliases": [
+        "jpmorgan",
+        "jp morgan",
+        "jpm"
+      ],
+      "etf_candidates": [
+        "XLF",
+        "SPY",
+        "VOO",
+        "VTI",
+        "VWCE.DE",
+        "EUNL.DE"
+      ]
+    }
+  },
+  "asset_macro_groups": {
+    "equities": [
+      "SPY",
+      "VOO",
+      "VTI",
+      "QQQ",
+      "DIA",
+      "IWM",
+      "XLK",
+      "XLF",
+      "XLE",
+      "VWCE.DE",
+      "EUNL.DE",
+      "ARKK"
+    ],
+    "bonds": [
+      "TLT"
+    ],
+    "crypto": [
+      "BTC",
+      "BTC-USD",
+      "BTCUSDT"
+    ],
+    "gold": [
+      "GOLD",
+      "GLD",
+      "GC=F"
+    ],
+    "energy": [
+      "OIL",
+      "XLE",
+      "BZ=F"
+    ]
+  },
+  "language": {
+    "negations": [
+      "not",
+      "no",
+      "never",
+      "neither",
+      "nicht",
+      "kein",
+      "keine",
+      "keinen",
+      "ohne",
+      "denies",
+      "denied",
+      "dementiert",
+      "dementi",
+      "widerlegt",
+      "false",
+      "falsch",
+      "ruled out",
+      "ausgeschlossen"
+    ],
+    "uncertainty": [
+      "reportedly",
+      "rumor",
+      "rumour",
+      "rumored",
+      "rumoured",
+      "might",
+      "could",
+      "may",
+      "allegedly",
+      "alleged",
+      "possible",
+      "possibly",
+      "report",
+      "reports",
+      "sources say",
+      "geruecht",
+      "angeblich",
+      "moeglich",
+      "koennte",
+      "soll",
+      "laut medien",
+      "erwaegt",
+      "erwaegen",
+      "vielleicht",
+      "unbestaetigt"
+    ],
+    "conditional": [
+      "if",
+      "falls",
+      "wenn",
+      "would",
+      "wuerde",
+      "might",
+      "could",
+      "plans to",
+      "plant",
+      "considering",
+      "erwaegt"
+    ],
+    "economy_anchors": [
+      "produktion",
+      "production",
+      "lieferung",
+      "shipment",
+      "fabrik",
+      "factory",
+      "anlage",
+      "mine",
+      "mining",
+      "output",
+      "umsatz",
+      "revenue",
+      "gewinn",
+      "profit",
+      "financing",
+      "finanzierung",
+      "bankrott",
+      "insolvency",
+      "insolvenz",
+      "shutdown",
+      "stillstand",
+      "halt",
+      "closure",
+      "closed",
+      "preis",
+      "price",
+      "kurse",
+      "stocks",
+      "shares",
+      "aktien",
+      "konzern",
+      "company",
+      "corporate",
+      "export",
+      "supply",
+      "stromnetz",
+      "blackout",
+      "energieversorgung",
+      "gdp",
+      "inflation",
+      "zinssatz",
+      "interest",
+      "rate",
+      "fed",
+      "ecb",
+      "ezb",
+      "sec",
+      "regulator",
+      "regulierung",
+      "lawsuit",
+      "klage",
+      "vertrag",
+      "contract",
+      "markt",
+      "market"
+    ],
+    "retraction": [
+      "retracted",
+      "retracts",
+      "withdrawn claim",
+      "fake report",
+      "hoax",
+      "falschmeldung",
+      "zurueckgewiesen",
+      "zurueckgezogen",
+      "dementiert",
+      "denied rumors",
+      "denies rumor",
+      "no evidence of"
+    ],
+    "pending": [
+      "reportedly",
+      "rumors",
+      "rumour",
+      "according to sources",
+      "soll angeblich",
+      "angeblich",
+      "unbestaetigt",
+      "unconfirmed",
+      "is considering",
+      "erwaegt",
+      "could",
+      "might"
+    ],
+    "revision": [
+      "corrects earlier report",
+      "correction",
+      "updated article",
+      "berichtigung",
+      "richtigstellung",
+      "korrigiert fruehere meldung"
+    ]
+  },
+  "human_interest": [
+    {
+      "id": "missing_person",
+      "patterns": [
+        "vermisst",
+        "vermisste",
+        "missing child",
+        "missing boy",
+        "missing girl",
+        "lost in outback",
+        "verschollen",
+        "outback",
+        "verloren im",
+        "gefunden",
+        "rescued",
+        "gerettet",
+        "wiedergefunden"
+      ],
+      "reason": "Einzelschicksal/Such- und Rettungsmeldung"
+    },
+    {
+      "id": "personal_fate",
+      "patterns": [
+        "tragisches schicksal",
+        "tragic story",
+        "happy end",
+        "happy ending",
+        "herzzerreissend",
+        "wunderbare rettung",
+        "in den armen seiner mutter",
+        "familie wieder vereint",
+        "family reunited",
+        "personal story"
+      ],
+      "reason": "Human Interest ohne belegten wirtschaftlichen Effekt"
+    },
+    {
+      "id": "lifestyle",
+      "patterns": [
+        "hochzeit",
+        "wedding",
+        "liebesgeschichte",
+        "love story",
+        "promi trennung",
+        "celebrity divorce",
+        "urlaubsreise",
+        "vacation",
+        "mode trends",
+        "fashion tips"
+      ],
+      "reason": "Lifestyle/Unterhaltung"
+    },
+    {
+      "id": "sports",
+      "patterns": [
+        "fussball ergebnis",
+        "football result",
+        "match gewonnen",
+        "fussballstar",
+        "tennisspieler",
+        "sportwettkampf",
+        " olympia gold"
+      ],
+      "reason": "Sportmeldung ohne wirtschaftlichen Ereignisbezug"
+    },
+    {
+      "id": "human_interest_misc",
+      "patterns": [
+        "remarkable rescue story",
+        "heartwarming story",
+        "einzelschicksal",
+        "herzensgeschichte",
+        "kind gerettet",
+        "hund gerettet",
+        "trauriges ende",
+        "tragischer ausgang",
+        "familienglueck",
+        "familiengeschichte"
+      ],
+      "reason": "Persönliche Einzelschicksale ohne Wirtschaftskanal"
+    }
+  ],
+  "events": [
+    {
+      "id": "ceo_departure",
+      "scope": "issuer",
+      "label": "Führungswechsel/Rücktritt",
+      "prior": -0.48,
+      "patterns": [
+        "ceo resigns",
+        "ceo resignation",
+        "chief executive resigns",
+        "ceo steps down",
+        "ceo stepped down",
+        "tritt zurueck",
+        "zurueckgetreten",
+        "ruecktritt",
+        "chefwechsel",
+        "abgesetzt",
+        "ousted",
+        "ceo fired",
+        "chef entlassen",
+        "vorstandsvorsitzender tritt zurueck"
+      ],
+      "tags": [
+        "management",
+        "governance"
+      ],
+      "regex": [
+        "\\b(?:ceo|chief executive|vorstandsvorsitzender)\\s+(?:(?:reportedly|may|might|will|plans to)\\s+)?(?:resigns?|steps?\\s+down|tritt\\s+zurueck)\\b"
+      ]
+    },
+    {
+      "id": "regulatory_probe",
+      "scope": "issuer",
+      "label": "Ermittlungen/Compliance",
+      "prior": -0.42,
+      "patterns": [
+        "investigation",
+        "antitrust probe",
+        "untersuchung",
+        "ermittlung",
+        "kartellverfahren",
+        "sec probe",
+        "regulatory scrutiny",
+        "insiderhandel",
+        "securities fraud",
+        "fraud investigation",
+        "durchsuchung",
+        "razzia",
+        "compliance verstoss"
+      ],
+      "tags": [
+        "legal",
+        "regulatory"
+      ]
+    },
+    {
+      "id": "profit_warning",
+      "scope": "issuer",
+      "label": "Gewinnwarnung",
+      "prior": -0.8,
+      "patterns": [
+        "profit warning",
+        "gewinnwarnung",
+        "guidance cut",
+        "cuts guidance",
+        "senkt prognose",
+        "lowers guidance",
+        "reduces outlook",
+        "profit downgrade"
+      ],
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "id": "guidance_raise",
+      "scope": "issuer",
+      "label": "Prognoseanhebung",
+      "prior": 0.58,
+      "patterns": [
+        "raises guidance",
+        "guidance raised",
+        "hebt prognose an",
+        "erhoeht prognose",
+        "raises outlook",
+        "higher forecast",
+        "lifts outlook"
+      ],
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "id": "earnings_beat",
+      "scope": "issuer",
+      "label": "Ergebnis über Erwartung",
+      "prior": 0.5,
+      "patterns": [
+        "beats expectations",
+        "beats estimates",
+        "eps beat",
+        "better than expected earnings",
+        "uebertrifft erwartungen",
+        "gewinn ueber erwartung",
+        "record revenue",
+        "rekordumsatz"
+      ],
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "id": "earnings_miss",
+      "scope": "issuer",
+      "label": "Ergebnis unter Erwartung",
+      "prior": -0.55,
+      "patterns": [
+        "misses expectations",
+        "misses estimates",
+        "earnings miss",
+        "below expectations",
+        "verfehlt erwartungen",
+        "gewinn unter erwartung",
+        "revenue miss",
+        "umsatzrueckgang"
+      ],
+      "tags": [
+        "earnings"
+      ]
+    },
+    {
+      "id": "export_restriction",
+      "scope": "issuer",
+      "label": "Export-/Absatzbeschränkung",
+      "prior": -0.62,
+      "patterns": [
+        "export ban",
+        "export restriction",
+        "export controls",
+        "exportverbot",
+        "exportbeschraenkung",
+        "chip ban",
+        "sanctions on company",
+        "export license revoked"
+      ],
+      "tags": [
+        "trade",
+        "regulatory"
+      ]
+    },
+    {
+      "id": "production_halt",
+      "scope": "issuer",
+      "label": "Produktionsausfall",
+      "prior": -0.65,
+      "patterns": [
+        "production halt",
+        "production suspended",
+        "factory shutdown",
+        "plant closed",
+        "mine closure",
+        "produktionsstopp",
+        "produktion eingestellt",
+        "werk geschlossen",
+        "lieferausfall",
+        "fertigung gestoppt",
+        "produktion unterbrochen"
+      ],
+      "tags": [
+        "supply"
+      ]
+    },
+    {
+      "id": "product_recall",
+      "scope": "issuer",
+      "label": "Produktrückruf",
+      "prior": -0.45,
+      "patterns": [
+        "product recall",
+        "recalls products",
+        "safety recall",
+        "produktrueckruf",
+        "rueckrufaktion",
+        "serienfehler",
+        "defective products"
+      ],
+      "tags": [
+        "product",
+        "legal"
+      ]
+    },
+    {
+      "id": "major_contract",
+      "scope": "issuer",
+      "label": "Großauftrag/Partnerschaft",
+      "prior": 0.36,
+      "patterns": [
+        "major contract",
+        "landmark deal",
+        "strategic partnership",
+        "grossauftrag",
+        "milliardenauftrag",
+        "strategische partnerschaft",
+        "record order",
+        "rekordauftrag",
+        "awarded contract"
+      ],
+      "tags": [
+        "demand"
+      ]
+    },
+    {
+      "id": "bankruptcy",
+      "scope": "issuer",
+      "label": "Insolvenz/Restrukturierung",
+      "prior": -0.9,
+      "patterns": [
+        "bankruptcy",
+        "files for bankruptcy",
+        "insolvenz",
+        "insolvent",
+        "chapter 11",
+        "creditor protection",
+        "zahlungsschwierigkeiten",
+        "defaulted on debt"
+      ],
+      "tags": [
+        "credit"
+      ]
+    },
+    {
+      "id": "buyback",
+      "scope": "issuer",
+      "label": "Aktienrückkauf",
+      "prior": 0.25,
+      "patterns": [
+        "share buyback",
+        "stock repurchase",
+        "rueckkaufprogramm",
+        "aktienrueckkauf",
+        "buyback program"
+      ],
+      "tags": [
+        "capital"
+      ]
+    },
+    {
+      "id": "job_cuts",
+      "scope": "issuer",
+      "label": "Stellenabbau",
+      "prior": -0.2,
+      "patterns": [
+        "mass layoffs",
+        "layoffs",
+        "job cuts",
+        "stellenabbau",
+        "massenentlassung",
+        "entlaesst mitarbeiter",
+        "streicht stellen"
+      ],
+      "tags": [
+        "labor"
+      ]
+    },
+    {
+      "id": "rates_higher",
+      "scope": "macro",
+      "label": "Überraschend restriktive Geldpolitik",
+      "prior": -0.6,
+      "patterns": [
+        "fed raises rates",
+        "fed hikes rates",
+        "ezb erhoeht leitzins",
+        "ecb raises rates",
+        "notenzbank erhoeht zins",
+        "fed ueberrascht mit zinserhoehung",
+        "hawkish surprise"
+      ],
+      "asset_signs": {
+        "equities": 1,
+        "bonds": 1,
+        "crypto": 1,
+        "gold": 1
+      },
+      "tags": [
+        "monetary"
+      ]
+    },
+    {
+      "id": "rates_lower",
+      "scope": "macro",
+      "label": "Überraschend lockerere Geldpolitik",
+      "prior": 0.6,
+      "patterns": [
+        "fed cuts rates",
+        "fed lowers rates",
+        "ezb senkt leitzins",
+        "ecb cuts rates",
+        "fed senkt zinsen",
+        "dovish surprise",
+        "unexpected rate cut"
+      ],
+      "asset_signs": {
+        "equities": 1,
+        "bonds": 1,
+        "crypto": 1,
+        "gold": 1
+      },
+      "tags": [
+        "monetary"
+      ]
+    },
+    {
+      "id": "crypto_approval",
+      "scope": "crypto",
+      "label": "Krypto-Zulassung",
+      "prior": 0.58,
+      "patterns": [
+        "bitcoin etf approved",
+        "bitcoin etf approval",
+        "bitcoin etf genehmigt",
+        "crypto etf approved",
+        "bitcoin legal tender"
+      ],
+      "asset_signs": {
+        "crypto": 1
+      },
+      "tags": [
+        "crypto",
+        "regulatory"
+      ]
+    },
+    {
+      "id": "crypto_ban",
+      "scope": "crypto",
+      "label": "Krypto-Verbot",
+      "prior": -0.65,
+      "patterns": [
+        "bitcoin banned",
+        "bitcoin ban",
+        "crypto ban",
+        "bitcoin verboten",
+        "kryptoverbot",
+        "bitcoin etf rejected",
+        "bitcoin etf abgelehnt"
+      ],
+      "asset_signs": {
+        "crypto": 1
+      },
+      "tags": [
+        "crypto",
+        "regulatory"
+      ]
+    },
+    {
+      "id": "oil_supply_disruption",
+      "scope": "macro",
+      "label": "Öl-Angebotsschock",
+      "prior": 0.65,
+      "patterns": [
+        "oil supply disruption",
+        "oil production cuts",
+        "opec cuts output",
+        "oelproduktion gekuerzt",
+        "oel angebotsengpass",
+        "pipeline shutdown",
+        "brent supply shortage",
+        "opec cuts oil production",
+        "opec reduces oil output",
+        "opec announces oil production cuts",
+        "opec kuerzt oelfoerderung"
+      ],
+      "asset_signs": {
+        "energy": 1,
+        "equities": -0.35
+      },
+      "tags": [
+        "energy",
+        "supply"
+      ]
+    },
+    {
+      "id": "major_trade_sanctions",
+      "scope": "macro",
+      "label": "Breite Handels-/Technologiesanktionen",
+      "prior": -0.42,
+      "patterns": [
+        "new trade sanctions",
+        "trade embargo imposed",
+        "sanktionen verhaengt",
+        "neue wirtschaftssanktionen",
+        "weitreichendes embargo",
+        "tariff hike announced",
+        "zoelle erhoeht"
+      ],
+      "asset_signs": {
+        "equities": 1
+      },
+      "tags": [
+        "geopolitics",
+        "trade"
+      ]
+    },
+    {
+      "id": "chip_export_licence",
+      "scope": "issuer",
+      "label": "Chip-Exportlizenz / Technologiebeschränkung",
+      "prior": -0.45,
+      "patterns": [
+        "chip export licence denied",
+        "chip export license denied",
+        "export licence revoked",
+        "export license revoked",
+        "chip sales restricted",
+        "gpu export restrictions",
+        "chip export restrictions",
+        "ausfuhrgenehmigung verweigert",
+        "chip exportgenehmigung verweigert"
+      ],
+      "tags": [
+        "export",
+        "regulation"
+      ]
+    },
+    {
+      "id": "data_center_order",
+      "scope": "issuer",
+      "label": "Rechenzentrums-Großauftrag",
+      "prior": 0.28,
+      "patterns": [
+        "data center contract awarded",
+        "data centre contract awarded",
+        "ai infrastructure deal signed",
+        "gpu supply agreement signed",
+        "gpu grossauftrag",
+        "rechenzentrums grossauftrag",
+        "rechenzentrumsauftrag"
+      ],
+      "tags": [
+        "orders",
+        "ai_infrastructure"
+      ]
+    },
+    {
+      "id": "earnings_restated",
+      "scope": "issuer",
+      "label": "Bilanzkorrektur / Restatement",
+      "prior": -0.53,
+      "patterns": [
+        "restates financial results",
+        "earnings restatement",
+        "accounting restatement",
+        "financial statements restated",
+        "bilanzkorrektur",
+        "bilanz muss korrigiert werden",
+        "bilanzierungsfehler"
+      ],
+      "tags": [
+        "accounting",
+        "earnings"
+      ]
+    },
+    {
+      "id": "liquidity_crisis",
+      "scope": "issuer",
+      "label": "Liquiditätsengpass",
+      "prior": -0.7,
+      "patterns": [
+        "liquidity crunch",
+        "cash shortfall",
+        "going concern warning",
+        "liquidity crisis",
+        "liquiditaetsengpass",
+        "liquiditatsengpass",
+        "zahlungsunfaehigkeit droht",
+        "cannot meet debt payments"
+      ],
+      "tags": [
+        "finance",
+        "solvency"
+      ]
+    },
+    {
+      "id": "debt_refinancing",
+      "scope": "issuer",
+      "label": "Refinanzierung gesichert",
+      "prior": 0.2,
+      "patterns": [
+        "refinancing secured",
+        "debt refinancing completed",
+        "credit facility secured",
+        "refinanzierung gesichert",
+        "kreditlinie gesichert"
+      ],
+      "tags": [
+        "funding"
+      ]
+    },
+    {
+      "id": "dividend_cut",
+      "scope": "issuer",
+      "label": "Dividendenkürzung",
+      "prior": -0.4,
+      "patterns": [
+        "cuts dividend",
+        "dividend suspended",
+        "dividend cut",
+        "dividendenkuerzung",
+        "dividende gestrichen",
+        "dividende gekuerzt"
+      ],
+      "tags": [
+        "capital_returns"
+      ]
+    },
+    {
+      "id": "dividend_raise",
+      "scope": "issuer",
+      "label": "Dividendenerhöhung",
+      "prior": 0.16,
+      "patterns": [
+        "raises dividend",
+        "increases dividend",
+        "dividende erhoeht",
+        "dividend increase announced"
+      ],
+      "tags": [
+        "capital_returns"
+      ]
+    },
+    {
+      "id": "takeover_offer",
+      "scope": "issuer",
+      "label": "Übernahmeangebot",
+      "prior": 0.48,
+      "patterns": [
+        "takeover offer received",
+        "cash takeover offer",
+        "buyout offer received",
+        "uebernahmeangebot erhalten",
+        "uebernahmeangebot vorgelegt",
+        "acquisition bid for"
+      ],
+      "tags": [
+        "m_and_a"
+      ]
+    },
+    {
+      "id": "merger_blocked",
+      "scope": "issuer",
+      "label": "Übernahme untersagt",
+      "prior": -0.3,
+      "patterns": [
+        "merger blocked",
+        "acquisition blocked by regulator",
+        "deal blocked by antitrust",
+        "uebernahme untersagt",
+        "fusion untersagt",
+        "zusammenschluss untersagt"
+      ],
+      "tags": [
+        "m_and_a",
+        "regulatory"
+      ]
+    },
+    {
+      "id": "cyber_incident",
+      "scope": "issuer",
+      "label": "Materieller Cybervorfall",
+      "prior": -0.4,
+      "patterns": [
+        "material cyberattack",
+        "ransomware shuts down",
+        "production halted after cyberattack",
+        "datenleck bei",
+        "cyberangriff legt produktion lahm",
+        "major data breach",
+        "material cybersecurity incident"
+      ],
+      "tags": [
+        "operational",
+        "cyber"
+      ]
+    },
+    {
+      "id": "supply_disruption",
+      "scope": "issuer",
+      "label": "Lieferengpass / Produktionsrisiko",
+      "prior": -0.35,
+      "patterns": [
+        "major supply shortage",
+        "critical component shortage",
+        "supply chain disruption at",
+        "lieferausfall bei",
+        "produktionsengpass bei",
+        "lieferengpass bei"
+      ],
+      "tags": [
+        "operations",
+        "supply_chain"
+      ]
+    },
+    {
+      "id": "contract_cancelled",
+      "scope": "issuer",
+      "label": "Auftragsstornierung",
+      "prior": -0.45,
+      "patterns": [
+        "contract cancelled",
+        "contract terminated",
+        "order cancelled",
+        "major order canceled",
+        "grossauftrag storniert",
+        "auftrag gekuendigt",
+        "auftrag storniert"
+      ],
+      "tags": [
+        "orders"
+      ]
+    },
+    {
+      "id": "antitrust_fine",
+      "scope": "issuer",
+      "label": "Kartellstrafe",
+      "prior": -0.46,
+      "patterns": [
+        "antitrust fine",
+        "competition fine imposed",
+        "million dollar regulatory fine",
+        "kartellstrafe",
+        "kartellbusse",
+        "milliardenstrafe"
+      ],
+      "tags": [
+        "regulatory",
+        "legal"
+      ]
+    }
+  ],
+  "source_notes": {
+    "rss_aggregators": "news.google.com ist ein RSS-Aggregator und kein redaktionell unabhängiger Primärpublisher",
+    "issuer_exposure": "ETF-Zuordnungen sind unverifizierte Expositionshypothesen; Gewicht ≠ ETF-Gewichtung",
+    "research": "Primäre historische Bewertung nur mit point-in-time Kursen, Benchmarks und disjunkten OOS-Beobachtungen",
+    "official_provenance": "Eine amtliche Domain belegt die institutionelle Herkunft der Antwort, nicht Marktmaterialität, Veröffentlichungsversion oder handelbare Wirkung. Nur echte Abrufe, keine synthetischen Daten.",
+    "point_in_time": "Zeitpunkt des Ereignisses, offizielle Veröffentlichung, erstes eigenes Beobachten, spätere Revisionen getrennt; für historische Studien ist first_seen_at verpflichtend und darf nicht nach dem Einstieg liegen."
+  },
+  "event_guard": {
+    "mode": "paper",
+    "window_hours": 24,
+    "hold_threshold": 0.35,
+    "adverse_rule_ids": [
+      "bankruptcy",
+      "profit_warning",
+      "export_restriction",
+      "production_halt",
+      "regulatory_probe",
+      "product_recall",
+      "crypto_ban",
+      "major_trade_sanctions"
+    ],
+    "min_source_weight": 0.65,
+    "note": "Paper-only: markiert mögliches Handelsveto, ohne Orders oder die Prognosehistorie zu verändern. Quellherkunft/Verfügbarkeit werden nicht vom Server beglaubigt."
+  },
+  "compatible_catalog_sha256": [
+    "dbaf9fe7709fea9d436eec49a0cacab709865d7b1b27e49dac7bfdf334e6a205",
+    "0b722e8b98077636bb312a0e95eab80668c3d3371b660965c0a9548f4dc3d4c0"
+  ],
+  "relationships": [
+    {
+      "from": "NVDA",
+      "to": "QQQ",
+      "type": "fund_constituent",
+      "description": "Invesco QQQ hält NVIDIA, Portfolioanteil laut Fondsanbieter (Stichtag 05.11.2026).",
+      "fraction": 0.0758,
+      "confidence": "verified_holding_snapshot",
+      "valid_from": "2026-11-05",
+      "valid_to": null,
+      "available_at": "2026-11-19T22:25:32Z",
+      "source_url": "https://www.invesco.com/us/en/financial-products/etfs/invesco-qqq-trust-series-1.html",
+      "evidence": "Offizielle Invesco-Bestandsliste mit Holdings-Stichtag 05.11.2026; Zeitpunkt der ursprünglichen Veröffentlichung nicht nachgewiesen. In QuantTrend konservativ erst ab erster eigener Quellenprüfung am 19.11.2026 verfügbar. Bestand kann sich ändern; keinerlei historische Rückdatierung.",
+      "holdings_as_of": "2026-11-05",
+      "first_verified_at": "2026-11-19T22:25:32Z"
+    },
+    {
+      "from": "TSM",
+      "to": "NVDA",
+      "type": "supplier_for",
+      "description": "NVIDIA nennt TSMC als Halbleiter-Wafer-Foundry im FY2026-Form-10-K.",
+      "fraction": null,
+      "confidence": "verified_dependency_unquantified",
+      "valid_from": "2026-02-25",
+      "valid_to": null,
+      "available_at": "2026-02-25T23:59:59Z",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000038/a2026-annualxreportxwebxfi.pdf",
+      "evidence": "Offizielle 10-K-Angabe; Ausfall- bzw. Umsatzanteil unbekannt; kein automatischer Richtungsfaktor."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "version": "12.0.5",
+  "checks": {
+    "javascript_syntax_all_executable_blocks": "PASS (11 blocks)",
+    "php_events_lint": "PASS",
+    "php_relay_lint": "PASS",
+    "python_bridge_compile": "PASS",
+    "progress_counter_independent_of_success": "PASS",
+    "monitor_snapshot_persisted": "PASS",
+    "direction_independent_of_action_gate": "PASS",
+    "buy_sell_quality_gated": "PASS",
+    "primary_dashboard_recommendation_sync": "PASS",
+    "legacy_decision_panel_sync": "PASS",
+    "specific_training_failure_diagnostics": "PASS",
+    "no_signal_is_not_silently_masked": "PASS",
+    "dashboard_integration_regression": "PASS (7/7)",
+    "decision_regression": "PASS (8/8)",
+    "etf_priority_regression": "PASS (3/3)"
+  },
+  "javascript_blocks_checked": 11,
+  "not_verified": [
+    "live external ETF data fetch",
+    "production hosting environment",
+    "full browser end-to-end run",
+    "forecast hit rate"
+  ]
+}
