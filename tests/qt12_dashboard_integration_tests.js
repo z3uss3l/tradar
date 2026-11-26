@@ -19,5 +19,17 @@ const checks=[
  ['ETF selection is reflected in shareable URL',s.includes("shareUrl.searchParams.set('asset',selectedAsset)")],
  ['missing optional API keys do not imply Yahoo/Stooq are unavailable',s.includes('Yahoo Finance und Stooq werden weiterhin ohne API-Key versucht.')]
 ];
+const loadSourcesBody=s.slice(s.indexOf('async function loadSources'),s.indexOf('function sourceLabel'));
+const qualityFeedsBody=s.slice(s.indexOf('function fetchQualityFeeds'),s.indexOf('function renderQualityFeeds'));
+const syncEventsBody=s.slice(s.indexOf('async function syncEventsServer'),s.indexOf('function buildEventStudyCases'));
+checks.push(
+ ['quality/news feeds are fetched sequentially on mobile',qualityFeedsBody.includes('Math.min(1,queue.length)')],
+ ['category sources are fetched sequentially on mobile',loadSourcesBody.includes('Math.min(1,keys.length)')],
+ ['category progress does not trigger a full event/factor render per source',!loadSourcesBody.slice(0,loadSourcesBody.indexOf('finally{')).includes('renderEvents()')],
+ ['final category render is retained after source acquisition',loadSourcesBody.includes('finally{sourceLoading=false;')&&loadSourcesBody.includes('renderEvents()')],
+ ['PHP event API responses are streamed and bounded before JSON parsing',s.includes('async function readBoundedResponseText')&&s.includes('JSON.parse(await readBoundedResponseText(res))')],
+ ['server event classification responses are streamed and bounded',syncEventsBody.includes('JSON.parse(await readBoundedResponseText(response))')],
+ ['event archive first-seen lookup is indexed once per synchronization',syncEventsBody.includes('firstSeenByStory=new Map()')&&!syncEventsBody.includes('.find(a=>a.title===x.title&&a.url===x.url)')]
+);
 let failed=0;for(const [name,ok] of checks){console.log((ok?'PASS':'FAIL')+': '+name);if(!ok)failed++;}
 if(failed)process.exit(1);
