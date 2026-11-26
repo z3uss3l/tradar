@@ -48,6 +48,7 @@ const broken={...sets,'IQQE.DE':{bars:sets['IQQE.DE'].bars.slice(0,8),basis:'raw
 context.state.sets=broken;
 const short=context.__dependency.compute();
 assert.ok(short.pairs.some(p=>p.c60===null),'insufficient common samples do not produce a correlation');
+assert.equal(short.neff,null,'effective confirmations are withheld when any pair is unavailable');
 assert.equal(short.dates.find(x=>x.asset==='IQQE.DE').basis,'raw');
 
 console.log('QT12 dependency diagnostics: all assertions passed');
