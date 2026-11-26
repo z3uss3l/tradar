@@ -2593,7 +2593,7 @@ const QT12Dependency=(()=>{
   for(let i=0;i<assets.length;i++)for(let j=i+1;j<assets.length;j++)pairs.push({a:assets[i],b:assets[j],...pair(assets[i],assets[j])});
   const valid=pairs.filter(p=>p.c60!==null);
   const sum=valid.reduce((s,p)=>s+Math.max(0,p.c60),0);
-  const neff=valid.length?Math.min(3,Math.max(1,9/(3+2*sum))):null;
+  const neff=valid.length===3?Math.min(3,Math.max(1,9/(3+2*sum))):null;
   const dates=assets.map(a=>({asset:a,count:cleanBars(a).length,first:cleanBars(a)[0]?.[0]||null,last:cleanBars(a).at(-1)?.[0]||null,basis:state.sets?.[a]?.basis||'unbekannt'}));
   const signals=assets.map(asset=>({asset,...(typeof QT12!=='undefined'?QT12.assess(asset):{action:'NO_SIGNAL',direction:'NICHT BESTIMMBAR'})}));
   const directional=signals.filter(x=>['STEIGEND','FALLEND'].includes(x.direction));
