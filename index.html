@@ -2544,7 +2544,7 @@ const QT12Dependency=(()=>{
   if(!Array.isArray(bars))return [];
   const byDate=new Map();
   for(const b of bars){
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(b?.date)||!Number.isFinite(b.close)||b.close<=0)continue;
+   if(typeof b?.date!=='string'||b.date.length!==10||b.date[4]!=='-'||b.date[7]!=='-'||!Number.isFinite(b.close)||b.close<=0)continue;
    byDate.set(b.date,b.close);
   }
   return [...byDate].sort((a,b)=>a[0].localeCompare(b[0]));
