@@ -2549,18 +2549,6 @@ const QT12Dependency=(()=>{
   }
   return [...byDate].sort((a,b)=>a[0].localeCompare(b[0]));
  }
- function returns(asset){
-  const b=cleanBars(asset),out=[];
-  for(let i=1;i<b.length;i++){
-   const r=Math.log(b[i][1]/b[i-1][1]);
-   if(Number.isFinite(r))out.push({date:b[i][0],r});
-  }
-  return out;
- }
- function align(a,b){
-  const m=new Map(a.map(x=>[x.date,x.r]));
-  return b.filter(x=>m.has(x.date)).map(x=>[m.get(x.date),x.r,x.date]);
- }
  function corr(rows){
   if(rows.length<12)return null;
   const ax=rows.reduce((s,x)=>s+x[0],0)/rows.length,by=rows.reduce((s,x)=>s+x[1],0)/rows.length;
@@ -2595,8 +2583,6 @@ const QT12Dependency=(()=>{
   const best=lags.filter(x=>x.r!==null).sort((x,y)=>Math.abs(y.r)-Math.abs(x.r))[0]||null;
   return {rows,n:rows.length,c20:corr(tail(20)),c60:corr(tail(60)),c120:corr(tail(120)),down:corr(down),downN:down.length,beta:beta(tail(60)),bestLag:best};
  }
- function compute(){
-  const data={};for(const a of assets)data[a]=returns(a);
   const pairs=[];
   for(let i=0;i<assets.length;i++)for(let j=i+1;j<assets.length;j++)pairs.push({a:assets[i],b:assets[j],...pair(assets[i],assets[j])});
   const valid=pairs.filter(p=>p.c60!==null);
