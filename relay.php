@@ -8,6 +8,73 @@ function reply(int $status, string $message, int $retry=0): void {
     if ($retry>0) header('Retry-After: '.max(1,$retry));
     echo json_encode(['error'=>$message],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit;
 }
+// Read-only production diagnostics. Fixed upstream URLs only; no user-controlled destination.
+if (($_SERVER['REQUEST_METHOD']??'GET')==='GET' && ($_GET['diagnostics']??'')==='1') {
+    header('Content-Type: application/json; charset=utf-8');
+    $assets=[
+        'EUNL.DE'=>['yahoo'=>'EUNL.DE','stooq'=>'eunl.de'],
+        'XMAW.DE'=>['yahoo'=>'XMAW.DE','stooq'=>'xmaw.de'],
+        'IQQE.DE'=>['yahoo'=>'IQQE.DE','stooq'=>'iqqe.de'],
+        'SPY'=>['yahoo'=>'SPY','stooq'=>'spy.us']
+    ];
+    $requested=$_GET['asset']??'';
+    if ($requested!=='' && !isset($assets[$requested])) reply(400,'Unbekanntes Diagnose-Asset.');
+    $selected=$requested!==''?[$requested=>$assets[$requested]]:$assets;
+    $probe=function(string $url): array {
+        $body='';$status=0;$error=null;$tooLarge=false;
+        if (extension_loaded('curl')) {
+            $ch=curl_init($url);
+            curl_setopt_array($ch,[
+                CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>18,
+                CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
+                CURLOPT_USERAGENT=>'QuantTrend/12.0.5 production-diagnostics',
+                CURLOPT_WRITEFUNCTION=>function($c,$chunk)use(&$body,&$tooLarge){
+                    if(strlen($body)+strlen($chunk)>2*1024*1024){$tooLarge=true;return 0;}
+                    $body.=$chunk;return strlen($chunk);
+                }
+            ]);
+            $ok=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
+            if($ok===false)$error=curl_error($ch);
+            curl_close($ch);
+        } elseif(filter_var(ini_get('allow_url_fopen'),FILTER_VALIDATE_BOOLEAN)) {
+            $ctx=stream_context_create([
+                'http'=>['method'=>'GET','timeout'=>18,'ignore_errors'=>true,'follow_location'=>0,'max_redirects'=>0,
+                    'header'=>"User-Agent: QuantTrend/12.0.5 production-diagnostics\r\nAccept: application/json,text/csv\r\n"],
+                'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'allow_self_signed'=>false]
+            ]);
+            $stream=@fopen($url,'rb',false,$ctx);
+            if($stream!==false){
+                foreach(($http_response_header??[]) as $i=>$line){
+                    if($i===0&&preg_match('~^HTTP/\S+\s+(\d{3})~',$line,$m))$status=(int)$m[1];
+                }
+                $body=(string)stream_get_contents($stream,2*1024*1024+1);fclose($stream);
+                if(strlen($body)>2*1024*1024){$tooLarge=true;$body='';}
+            } else $error='HTTPS-Verbindung fehlgeschlagen (PHP-Streams).';
+        } else $error='Weder PHP-cURL noch allow_url_fopen ist verfügbar.';
+        return ['http'=>$status,'bytes'=>strlen($body),'error'=>$error,'too_large'=>$tooLarge,'body'=>$body];
+    };
+    $results=[];
+    foreach($selected as $asset=>$symbols){
+        $yahooUrl='https://query1.finance.yahoo.com/v8/finance/chart/'.rawurlencode($symbols['yahoo']).'?range=5d&interval=1d';
+        $y=$probe($yahooUrl);$yj=json_decode($y['body'],true);$yr=$yj['chart']['result'][0]??null;
+        $yt=$yr['timestamp']??[];$yq=$yr['indicators']['quote'][0]['close']??[];
+        $ybars=0;$ydates=[];
+        foreach($yt as $i=>$stamp)if(isset($yq[$i])&&is_numeric($yq[$i])){$ybars++;$ydates[]=gmdate('Y-m-d',(int)$stamp);}
+        $results[$asset]['yahoo']=['http'=>$y['http'],'bars'=>$ybars,'first'=>$ydates[0]??null,'last'=>$ydates?end($ydates):null,
+            'provider_error'=>$yj['chart']['error']['description']??null,'transport_error'=>$y['error'],'too_large'=>$y['too_large']];
+        $stooqUrl='https://stooq.com/q/d/l/?s='.rawurlencode($symbols['stooq']).'&i=d';
+        $s=$probe($stooqUrl);$lines=preg_split('/\r\n|\r|\n/',trim($s['body']));$sbars=0;$sdates=[];
+        if(count($lines)>1&&str_starts_with($lines[0],'Date,'))
+            foreach(array_slice($lines,1) as $line){$cols=str_getcsv($line);if(count($cols)>=5&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$cols[0])){$sbars++;$sdates[]=$cols[0];}}
+        $results[$asset]['stooq']=['http'=>$s['http'],'bars'=>$sbars,'first'=>$sdates[0]??null,'last'=>$sdates?end($sdates):null,
+            'transport_error'=>$s['error'],'too_large'=>$s['too_large']];
+    }
+    echo json_encode(['ok'=>true,'diagnostics'=>'quanttrend-market-relay/1','server'=>[
+        'php'=>PHP_VERSION,'curl'=>extension_loaded('curl'),'allow_url_fopen'=>filter_var(ini_get('allow_url_fopen'),FILTER_VALIDATE_BOOLEAN)
+    ],'checked_at'=>gmdate('c'),'assets'=>$results],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 if (($_SERVER['REQUEST_METHOD']??'GET')!=='GET') reply(405,'Nur GET erlaubt.');
 if (!extension_loaded('curl') && !filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) reply(503,'Weder PHP-cURL noch allow_url_fopen ist aktiviert.');
 $url=$_GET['url']??'';
