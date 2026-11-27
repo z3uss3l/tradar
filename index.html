@@ -2758,6 +2758,10 @@ const QT12Agents=(()=>{
   check('Klare Abwärtsprognose bleibt SELL unabhängig von Handelsfreigabe',QT12.forecastSignal(.31,.62)==='SELL');
   check('Kleine Richtungsdifferenz bleibt HOLD',QT12.forecastSignal(.38,.35)==='HOLD');
   check('Fehlende Wahrscheinlichkeiten erzeugen kein Signal',QT12.forecastSignal(null,.7)==='NO_SIGNAL');
+  const previousSets=state.sets,previousCurrentResult=QT12.currentResult;let guarded=null;
+  try{state.sets={...(previousSets||{}),SELFTEST:{bars:Array.from({length:22},(_,i)=>({close:100+i,volume:null}))}};QT12.currentResult=()=>({p:[.05,.05,.90],currentP:Array.from({length:5},()=>[.05,.05,.90])});guarded=decorate('SELFTEST',{asset:'SELFTEST',up:.90,down:.05,action:'BUY',tradeAllowed:true});}
+  finally{state.sets=previousSets;QT12.currentResult=previousCurrentResult;}
+  check('Risk-Veto sperrt Handelsfreigabe, überschreibt aber nicht BUY-Prognose',guarded?.action==='BUY'&&guarded.tradeAllowed===false&&guarded.riskVeto===true);
   return {passed:tests.filter(x=>x.ok).length,total:tests.length,tests};
  }
  return {VERSION,LIMITS,conflictScore,riskMetrics,riskVetoReasons,memoryStats,settleReflections,decorate,render,selfTest};
