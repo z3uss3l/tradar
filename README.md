@@ -1,4 +1,4 @@
-# QuantTrend 12.2.0
+# QuantTrend 12.3.0
 
 ## Fehlerbehebung
 - Die aktive ETF-Empfehlung wird jetzt auch in der primären Dashboard-Übersicht (`#qt12DashboardSignal`) und im bestehenden Ensemble-Entscheidungsfeld (`#decision`) angezeigt. Beide Anzeigen verwenden dieselbe berechnete Empfehlung wie die ETF-Kommandozentrale.
@@ -64,3 +64,99 @@ Die bisherige Logik hat Prognose und Handelsfreigabe vermischt: Sobald eine Qual
 - Zusammen mit den bisherigen 13 Research-/Memory-/Risk-Tests: 18 deterministische Selbsttests.
 - Die geänderte HTML-Datei wurde vollständig im GitHub-Repository aktualisiert. Ein erneuter Parserlauf aller Inline-Skripte und ein Browser-E2E-Test müssen nach dem Quelltext-Update noch separat verifiziert werden.
 - Keine neue Laufzeitabhängigkeit und kein API-Key erforderlich.
+
+
+## QuantTrend 12.3.0 · Historical Context & Volatility Regime Engine
+
+### Ziel und Modellarchitektur
+
+Die Prognoseengine verwendet jetzt zusätzlich eine zeitkausale Kontextrepräsentation. Historische Kursposition, Trendhorizonte und relatives Volatilitätsregime werden nicht als nachträgliche Kauf-/Verkaufsschwellen behandelt, sondern als Merkmale in denselben fünf separat trainierten Klassifikatoren. Dadurch können die Modelle lernen, ob ein Merkmal in einem bestimmten Regime mit der späteren oberen oder unteren Barriere zusammenhängt. Die Richtung wird nicht durch feste Regeln vorgegeben.
+
+**14 zusätzliche Kurs-/Regimemerkmale pro historischer Beobachtung:**
+
+1. Abstand zum bis dahin höchsten Schlusskurs des verfügbaren Datensatzes.
+2. Abstand zum höchsten Schlusskurs der letzten 252 Bars.
+3. Abstand zum bis dahin niedrigsten Schlusskurs.
+4. Abstand zum rollierenden 252-Bar-Mittelwert.
+5. Abstand zum rollierenden 252-Bar-Median.
+6. Abstand zum SMA50.
+7. Rendite über 60 Bars.
+8. Rendite über 120 Bars.
+9. Realisierte tägliche Volatilität über 60 Bars.
+10. Realisierte tägliche Volatilität über 252 Bars.
+11. Verhältnis kurzfristiger zu langfristiger Volatilität.
+12. Perzentil der aktuellen 20-Bar-Volatilität gegenüber den vorangegangenen bis zu 252 Beobachtungen.
+13. ATR-Perzentil gegenüber den vorangegangenen bis zu 252 Beobachtungen.
+14. Zeit seit dem bisherigen Datenhoch, normiert auf 252 Handelstage.
+
+Die bereits vorhandenen Merkmale bleiben vollständig erhalten: RSI, 1-/5-/20-Bar-Renditen, Volumenverhältnis, SMA20/50-Abstände, ATR, MACD, 20-Bar-Volatilität, Tagesrange, Close-Lage, Gap, Volumenänderung, Fractional Differencing, CUSUM sowie alle zeitlich verfügbaren externen Faktoren. Die fünf Modellfamilien und die bestehende OOS-/Kalibrierungslogik bleiben erhalten.
+
+### Historische Kennzahlen in der Oberfläche
+
+Das Dashboard zeigt für das aktive Asset:
+- letzten Schlusskurs und Datenstand,
+- höchsten Kurs im tatsächlich verfügbaren Datensatz samt Datum und Drawdown,
+- arithmetischen Mittelwert über die verfügbare Historie,
+- 252-Bar-Mittelwert und -Median,
+- 252-Bar-Hoch und verfügbares historisches Tief,
+- annualisierte realisierte Volatilität über 20 und bis zu 252 Bars,
+- Perzentil der kurzfristigen Volatilität innerhalb der zurückliegenden Verteilung,
+- Verhältnis kurzfristiger zu langfristiger Volatilität.
+
+**Interpretationsgrenze:** „Höchster verfügbarer Kurs“ ist bewusst nicht als garantiertes Allzeithoch bezeichnet. Die geladene Zeitreihe kann vor dem tatsächlichen Börsenbeginn des ETF liegen oder unvollständig sein. Mittelwerte sind Referenzstatistiken, keine fair-value-Schätzung und kein automatisches Kursziel. Bei unbereinigten Kursen können Splits historische Vergleiche verfälschen; die bestehende Preisbasis-Prüfung bleibt deshalb bestehen.
+
+### Volatilität und Regime: Forschungsstand
+
+Die Implementierung orientiert sich an einem wichtigen Ergebnis der aktuellen Volatilitätsforschung: Komplexere neuronale Netze sind nicht automatisch überlegen. Kılıç (Federal Reserve, 2025) vergleicht ARFIMA, HAR, regime-switching HAR (THAR/STHAR/MSHAR), XGBoost und neuronale Netze anhand rollierender S&P-500-Prognosen 2006–2023. STHAR erzielt im Gesamtzeitraum die niedrigsten MSPE- und QLIKE-Verluste; regimeabhängige ökonometrische Modelle schneiden besonders bei begrenzter Prädiktorzahl robust ab. Ding, Kambouroudis und McMillan (2025) finden bei acht internationalen Aktienmärkten Vorteile von Markov-Switching-HAR insbesondere auf Wochen- und Monatshorizonten, während die tägliche Prognose gemischter ausfällt.
+
+Daraus folgt für QuantTrend:
+- Volatilität nicht nur als absolute Zahl, sondern relativ zur eigenen Historie modellieren.
+- Kurz-, Mittel- und Langfristregime unterscheiden.
+- Volatilitätsanstieg und -abkühlung als unterschiedliche Zustände erfassen.
+- Ein einfaches, zeitkausales Merkmal nicht mit einem vollständig implementierten HAR- oder Markov-Switching-HAR-Modell verwechseln.
+
+Die neue Engine ergänzt regimebezogene Features. Sie behauptet **nicht**, bereits einen vollständigen HAR-RV-, STHAR- oder MS-TVTP-HAR-Schätzer zu enthalten. Dafür wären intraday-basierte Realized-Volatility-Reihen und eine separate, horizon-spezifische Volatilitätsprognose erforderlich. Ebenso wird kein VIX-Wert erfunden: Implizite Volatilität muss als echte, zeitgestempelte Faktorhistorie importiert bzw. über eine künftig integrierte Quelle bezogen werden.
+
+### Makroökonomie, News und Weltgeschehen
+
+Die bestehende Faktor- und Ereignisarchitektur bleibt aktiv und wird durch die neuen Kursregime-Merkmale ergänzt:
+- Numerische Makrofaktoren werden mit `observed_at` und `available_at` geführt. Für historische Trainingszeilen wird ein Faktor nur verwendet, wenn er zum jeweiligen Prognosezeitpunkt bereits verfügbar war.
+- Nachrichten werden dedupliziert, zeitlich geprüft und nach Quellenklasse, Relevanz, Unsicherheit und Alter gewichtet.
+- Aus erkannten Meldungen werden fünf numerische Kontextmerkmale gebildet: `news_pressure`, `news_conflict`, `news_coverage`, `news_uncertainty` und `news_quality`.
+- Diese Merkmale werden erst ab ihrer tatsächlichen Erfassung verfügbar gemacht. Sie werden nicht rückwirkend in historische Zeitpunkte geschrieben.
+- News-Features können im bestehenden UI über „Experimentelle Modellmerkmale“ aktiviert werden. Nach Aktivierung ist ein erneutes Training erforderlich.
+- Ein Event-Guard mit unvollständiger Quellenabdeckung wird nicht als Entwarnung interpretiert. Ein erkannter Trigger kann die Handelsfreigabe blockieren, erzeugt aber nicht automatisch eine positive oder negative Kursrichtung.
+
+Das ist absichtlich konservativ. Schlagzeilen enthalten oft mehrdeutige Kausalität, Wiederholungen und verzögerte Preisreaktionen. Bodilsen und Lunde (Journal of Applied Econometrics, 2025) berichten, dass makroökonomische News-Sentiment-Merkmale die Realized-Volatility-Prognose in ihrem Datensatz verbessern; unternehmensbezogene News-Sentiments waren im allgemeinen Modell deutlich schwächer, während die Zahl über Nacht veröffentlichter Unternehmensmeldungen bei der Ein-Tages-Prognose helfen konnte. Plíhal (2021) findet bei EUR/USD, GBP/USD und USD/JPY einen statistisch signifikanten Beitrag geplanter Makroankündigungen zur Volatilitätsprognose, mit bis zu 12,4 % Prognoseverbesserung in der untersuchten Stichprobe. Li et al. (2022) finden unter anderem für VIX und Equity-Market-Volatility-Indikatoren zusätzlichen Informationswert; der relative Nutzen einzelner Indizes variiert jedoch mit dem Regime. Boehm und Kroner (NBER, 2023) dokumentieren, dass US-Makronachrichten internationale Aktienindizes, VIX und Rohstoffe gleichzeitig bewegen können.
+
+Diese Resultate rechtfertigen die Aufnahme solcher Daten als Kandidatenmerkmale, nicht die Übernahme ihrer Koeffizienten oder die Annahme eines universellen Effekts. QuantTrend lernt die Beziehung asset- und horizon-spezifisch aus den eigenen späteren Ergebnissen. News-Rulescores sind zunächst heuristische Messgrößen, keine kalibrierten Wahrscheinlichkeiten eines Kursereignisses.
+
+### Validierung und Schutz vor Scheinerkenntnissen
+
+- **Point-in-time:** Alle Kursmerkmale einer Zeile verwenden ausschließlich Bars bis einschließlich des damaligen Schlusskurses. Externe Daten werden über ihre tatsächlichen Verfügbarkeitszeitstempel gefiltert.
+- **Warm-up:** 60-/120-Bar-Momentum bleibt fehlend, solange der jeweilige Horizont nicht vollständig vorliegt. Fehlende Werte werden im bestehenden Trainings-Scaler ausschließlich mit Trainingsmedians imputiert und separat als Missingness-Features markiert.
+- **Versionierung:** Die Engine-Ergebnisversion wurde auf `12.3.0` angehoben. Ergebnisse älterer Featurevektoren werden dadurch nicht stillschweigend als aktuell akzeptiert; betroffene Assets müssen neu trainiert werden.
+- **Keine künstliche Gewissheit:** Neue Merkmale verändern die Wahrscheinlichkeiten erst nach erneutem Training. Ein zusätzlicher Featureblock ist kein Beweis für bessere Prognosegüte.
+- **Bewertung:** LogLoss, Brier Score, ECE, Basisratenvergleich, OOS-Abdeckung und realisierte Handelskennzahlen bleiben entscheidend. Feature-Ablation muss denselben zeitlichen Testplan verwenden: Basismodell gegen Basismodell plus historische Kontextfeatures gegen Basismodell plus Kontext und externe Faktoren.
+- **Selektionsrisiko:** Hyperparameter- und Featureauswahl müssen die Zahl getesteter Varianten berücksichtigen. PBO/CSCV und Deflated Sharpe Ratio sind geeignete ergänzende Diagnosen, aber kein Ersatz für einen unangetasteten prospektiven Testzeitraum.
+
+### Prüfung 12.3.0
+
+- 13 ausführbare JavaScript-Inline-Blöcke syntaktisch erfolgreich geparst.
+- Engine-Dataset mit 700 deterministischen Testbars ausgeführt: 650 Trainingszeilen erzeugt.
+- 30 Featurepositionen (16 bestehende + 14 neue) stimmen mit der Merkmalsvektorbreite überein.
+- Keine nicht-endlichen Merkmalswerte außer ausdrücklich fehlenden Werten.
+- Kausalitätstest bestanden: Merkmalsvektor für denselben Stichtag ist identisch, wenn spätere Bars an den Datensatz angehängt werden.
+- Das sind Engine-/Syntax-/Kausalitätstests, kein historischer Renditebeweis. Noch nicht durchgeführt: Browser-E2E, vollständiger ETF-Neulauf mit Livekursen und statistischer Ablation auf einem unberührten OOS-Zeitraum.
+
+### Forschungsquellen
+
+- Kılıç (2025), Federal Reserve FEDS 2025-061, *Linear and nonlinear econometric models against machine learning models: realized volatility prediction*: https://www.federalreserve.gov/econres/feds/files/2025061pap.pdf
+- Ding, Kambouroudis & McMillan (2025), *Forecasting realised volatility using regime-switching models*: https://doi.org/10.1016/j.iref.2025.104171
+- Bodilsen & Lunde (2025), *Exploiting News Analytics for Volatility Forecasting*: https://onlinelibrary.wiley.com/doi/full/10.1002/jae.3095
+- Plíhal (2021), *Scheduled macroeconomic news announcements and Forex volatility forecasting*: https://onlinelibrary.wiley.com/doi/10.1002/for.2773
+- Li et al. (2022), *Forecasting stock market volatility with a large number of predictors: MS-MIDAS-LASSO*: https://pmc.ncbi.nlm.nih.gov/articles/PMC9039984/
+- Boehm & Kroner (2023), NBER Working Paper 30994, *The US, Economic News, and the Global Financial Cycle*: https://www.nber.org/papers/w30994
+- López de Prado (2018), *Advances in Financial Machine Learning*, Purged/Embargoed CV: https://agorism.dev/book/finance/ml/Marcos%20Lopez%20de%20Prado%20-%20Advances%20in%20Financial%20Machine%20Learning-Wiley%20%282018%29.pdf
+- Bailey et al., *The Probability of Backtest Overfitting*: https://www.davidhbailey.com/dhbpapers/backtest-prob.pdf
+- Dimitriadis et al. (2024), *Evaluating probabilistic classifiers: The triptych*: https://doi.org/10.1016/j.ijforecast.2023.09.007
