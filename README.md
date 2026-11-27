@@ -10,6 +10,15 @@
 ## Installation
 Das vollständige ZIP-Paket als Ersatz der vorherigen Webversion deployen. Vorher ein Backup der vorhandenen Dateien und Daten anlegen. Browser-Lokaldaten werden durch den Austausch der Webdateien nicht automatisch gelöscht.
 
+## Produktionsdiagnose der Kursversorgung
+
+Nach dem Deployment von `relay.php` kann die tatsächliche ausgehende Datenverbindung des Webhostings ohne API-Schlüssel geprüft werden:
+
+- Alle priorisierten ETFs plus SPY: `https://trade.erdgebunden.de/relay.php?diagnostics=1`
+- Einzelnes Asset: `https://trade.erdgebunden.de/relay.php?diagnostics=1&asset=EUNL.DE` (zulässig: `EUNL.DE`, `XMAW.DE`, `IQQE.DE`, `SPY`)
+
+Die Diagnose testet ausschließlich fest codierte Yahoo-Finance- und Stooq-Endpunkte, meldet HTTP-Status, Anzahl erkannter Tagesbars, Datumsbereich sowie PHP-cURL-/Stream-Verfügbarkeit. Es werden keine frei wählbaren Ziel-URLs angenommen und keine Zugangsdaten übertragen. Ein erfolgreicher Probeabruf belegt die Server-Erreichbarkeit der Anbieter, ersetzt aber nicht den vollständigen Browser- und Modell-E2E-Test.
+
 ## Prüfung / Grenzen
 - Eingebettete JavaScript-Blöcke mit `node --check` geprüft.
 - PHP-Syntax für `events.php` und `relay.php` geprüft.
