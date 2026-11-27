@@ -11,7 +11,7 @@
 <header><div class="top"><div class="brand"><span class="mark">Q</span>QuantTrend<b>AI</b><span class="tag">RESEARCH TERMINAL · <span data-app-version></span> · QT12</span></div><div class="row"><select id="asset" aria-label="Anlage"></select><button id="fetch" class="ghost">↻ Kurse</button><button id="train" class="primary">▶ Trainieren & prüfen</button><button id="cancel" class="hidden">Abbrechen</button></div></div></header>
 <main class="shell"><div class="intro"><div><div class="eyebrow">LOCAL FIRST / EVIDENCE FIRST</div><h1>Markt verstehen. Prognosen beweisen.</h1><p class="muted">Fünf Modelle. Reale Zeitreihen. Nachprüfbare Ergebnisse.</p></div><div><div id="status" class="chip">Bereit · keine Modellberechnung</div><div id="storage" class="sub">Speicher wird geprüft …</div></div></div>
 <section id="qt12Recommendations" class="panel qt12-panel" aria-labelledby="qt12Title">
-<div class="row between"><div><div class="eyebrow">QUANTTREND 12.0.5 · PRIORISIERTE ETF-ENTSCHEIDUNG</div><h2 id="qt12Title" style="font-size:22px;margin:5px 0">ETF-KOMMANDOZENTRALE</h2><p class="sub">Für jeden ETF: KAUFEN · HALTEN · VERKAUFEN und separat STEIGEND / FALLEND. Modellvermutung, keine Gewissheit.</p></div><div class="row"><button id="qt12RefreshData" class="ghost">↻ PRIORITÄTS-KURSDATEN LADEN</button><button id="qt12Run" class="primary">▶ ALLE ETFs automatisch analysieren</button><button id="qt12Stop" class="ghost" disabled>Stop</button><button id="qt12Export" class="ghost">↓ Empfehlungen CSV</button></div></div>
+<div class="row between"><div><div class="eyebrow">QUANTTREND 12.1.0 · PRIORISIERTE ETF-ENTSCHEIDUNG</div><h2 id="qt12Title" style="font-size:22px;margin:5px 0">ETF-KOMMANDOZENTRALE</h2><p class="sub">Für jeden ETF: KAUFEN · HALTEN · VERKAUFEN und separat STEIGEND / FALLEND. Modellvermutung, keine Gewissheit.</p></div><div class="row"><button id="qt12RefreshData" class="ghost">↻ PRIORITÄTS-KURSDATEN LADEN</button><button id="qt12Run" class="primary">▶ ALLE ETFs automatisch analysieren</button><button id="qt12Stop" class="ghost" disabled>Stop</button><button id="qt12Export" class="ghost">↓ Empfehlungen CSV</button></div></div>
 <div id="qt12Status" class="notice">Noch kein ETF-Gesamtlauf ausgeführt. Die Analyse verwendet echte Kursreihen und trainiert jeden ETF separat.</div><div id="qt12MonitorStatus" class="notice">Dashboard-Monitor: Noch keine gespeicherten ETF-Empfehlungen.</div>
 <div id="qt12Dependency" class="notice" aria-live="polite"><b>ETF-Abhängigkeiten</b><br>Wird aus synchronisierten Kursreihen berechnet …</div>
 <div id="qt12Current" class="qt12-current"><div class="qt12-empty">Noch keine aktuelle Empfehlung. Gesamtlauf starten.</div></div>
@@ -103,6 +103,16 @@ SOFTWARE.</pre></details></details>
 <section id="journal" class="panel"><div class="row between"><h2>Prognosejournal · nachträgliche Wahrheit</h2><div class="row"><button id="settle">Fällige Prognosen bewerten</button><button id="journalExport">↓ Journal</button></div></div><p class="sub">Pro Asset, Datenquelle, Bar-Abschluss und Labeldefinition wird nur die erste Prognose gespeichert. Varianten bleiben unverändert. Neue Einträge beginnen mit offener Zeitprüfung. Für die prospektive Quote muss die Prognose vor 00:00 UTC des ersten dokumentierten Folgekurstags gespeichert worden sein. Fehlende Kurstage können diese Einordnung beeinflussen. Bewertung erst nach vollständig vorliegenden Folgebars; Preisrevisionen oder Quellenwechsel sperren den Vergleich.</p><div id="journalStats" class="notice">Noch keine Prognosen gespeichert.</div>
 <div class="row"><button type="button" id="journalSealCheck">SHA-256-Snapshotkette prüfen</button><span id="journalSealStatus" class="sub">Neue Prognosen werden lokal mit SHA-256 versiegelt, falls WebCrypto verfügbar ist. Ältere Einträge bleiben unverändert.</span></div>
 <p class="sub">Die Hashkette weist nachträgliche Änderungen innerhalb des vorliegenden Backups nach, ist jedoch <strong>kein externer Zeitstempel und nicht manipulationssicher</strong>. Historische Erstveröffentlichung lässt sich damit allein nicht beglaubigen.</p><div class="scroll"><table><thead><tr><th>Erstellt</th><th>Asset / Bar</th><th>Modus</th><th>Prognose ↓ / → / ↑</th><th>Ergebnis</th><th>Modelle getroffen</th></tr></thead><tbody id="journalRows"></tbody></table></div></section>
+<section class="panel" id="agentLayer">
+ <div class="row between"><div><div class="eyebrow">DETERMINISTIC MULTI-AGENT LAYER</div><h2>Research Debate · Reflection Memory · Risk Committee</h2></div><button id="agentLayerSelfTest" class="ghost">Algorithmus-Selbsttest</button></div>
+ <p class="sub">TradingAgents-inspirierte, vollständig lokale Auswertung. Kein LLM, keine API-Keys und keine Änderung gespeicherter Prognosewahrscheinlichkeiten. Neue Risiko-Vetos können KAUFEN/VERKAUFEN blockieren.</p>
+ <div id="agentLayerSummary" class="notice">Warte auf ein aktuelles Modellresultat.</div><div id="agentLayerMetrics" class="grid three"></div>
+ <p id="agentLayerTestStatus" class="sub" role="status" aria-live="polite">Selbsttest noch nicht ausgeführt.</p>
+ <h3>Prospektive Reflection Memory · zuletzt bewertete Prognosen</h3>
+ <div class="scroll"><table><thead><tr><th>Asset / Prognose</th><th>Ergebnis</th><th>Asset-Rendite</th><th>SPY-Alpha</th><th>Reflection</th></tr></thead><tbody id="agentReflectionRows"><tr><td colspan="5">Noch keine prospektiv bewerteten Prognosen.</td></tr></tbody></div>
+ <p class="sub">Risiko-Veto (konservative Standardgrenzen): maximaler 252-Bar-Drawdown ≤ −25 %, annualisierte 20-Bar-Volatilität ≥ 55 % oder medianer 20-Bar-Tagesumsatz unter 250.000 in Kurswährung. Fehlende Liquiditätsdaten führen zu einem Veto statt zu einer erfundenen Freigabe. Debattenkonflikt ≥ 55 % blockiert ebenfalls neue Kauf-/Verkaufssignale. Diese Grenzwerte sind explizite Schutzparameter, keine empirisch optimierten Naturkonstanten.</p>
+</section>
+
 <section class="panel" id="robustnessPanel">
 <h2>Robustheitsprüfung · 10.5</h2>
 <p>Prüft die vorhandenen Prognosen mit eingefrorenen Eingaben. Änderungen an Einstellungen erzeugen einen neuen Versuch. Die Ergebnisse ändern keine Modellgewichte.</p>
@@ -2460,7 +2470,7 @@ function bindV113(){
 <script>
 'use strict';
 /* QuantTrend 12 recommendation layer. Uses the existing causal, per-asset model pipeline. */
-const QT12={version:'12.0.5',running:false,stop:false,priority:ETF_PRIORITY.slice(),etfs:[...ETF_PRIORITY,...Object.entries(ASSETS).filter(([k,v])=>v[1]==='etf'&&!ETF_PRIORITY.includes(k)).map(([k])=>k)],
+const QT12={version:'12.1.0',running:false,stop:false,priority:ETF_PRIORITY.slice(),etfs:[...ETF_PRIORITY,...Object.entries(ASSETS).filter(([k,v])=>v[1]==='etf'&&!ETF_PRIORITY.includes(k)).map(([k])=>k)],
  delay:ms=>new Promise(resolve=>setTimeout(resolve,ms)),
  currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];const validP=p=>Array.isArray(p)&&p.length===3&&p.every(v=>Number.isFinite(v)&&v>=0&&v<=1)&&Math.abs(p.reduce((a,b)=>a+b,0)-1)<=1e-5;return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&Array.isArray(r.oos)&&r.oos.length===5&&Array.isArray(r.currentP)&&r.currentP.length===5&&r.currentP.every(validP)&&validP(r.p)&&Array.isArray(r.ensemble)?r:null;},
  assess(asset){
@@ -2647,4 +2657,118 @@ const qt12RenderBase=QT12.render.bind(QT12);
 QT12.render=function(){const value=qt12RenderBase();QT12Dependency.render();return value;};
 QT12Dependency.render();
 </script>
+
+<script>
+'use strict';
+/* QuantTrend deterministic TradingAgents-inspired layer. No LLM/network dependency. */
+const QT12Agents=(()=>{
+ const VERSION='qt-agents-deterministic-1';
+ const LIMITS={maxDrawdown:.25,maxAnnualVolatility:.55,minMedianDollarVolume:250000,volumeCoverage:.8,conflictVeto:.55,memoryMinN:20,memoryVetoConfidence:.30,memoryWindow:30};
+ const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+ const median=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+ const argmax=a=>a.reduce((best,v,i)=>v>a[best]?i:best,0);
+ function conflictScore(bull,bear){if(!Number.isFinite(bull)||!Number.isFinite(bear)||bull<0||bear<0)return null;const sum=bull+bear;return sum>0?Math.max(0,Math.min(1,1-Math.abs(bull-bear)/sum)):1;}
+ function riskMetrics(bars){
+  if(!Array.isArray(bars)||bars.length<22)return {maxDrawdown:null,annualVolatility:null,medianDollarVolume:null,volumeCoverage:0,liquidityKnown:false};
+  const tail=bars.slice(-252),closes=tail.map(x=>x.close).filter(x=>Number.isFinite(x)&&x>0);let peak=0,maxDrawdown=0;
+  for(const close of closes){peak=Math.max(peak,close);if(peak>0)maxDrawdown=Math.min(maxDrawdown,close/peak-1);}
+  const recent=bars.slice(-21),returns=[];for(let i=1;i<recent.length;i++)if(Number.isFinite(recent[i-1].close)&&recent[i-1].close>0&&Number.isFinite(recent[i].close)&&recent[i].close>0)returns.push(Math.log(recent[i].close/recent[i-1].close));
+  let annualVolatility=null;if(returns.length>=16){const m=mean(returns),variance=returns.reduce((a,x)=>a+(x-m)**2,0)/(returns.length-1);annualVolatility=Math.sqrt(variance*252);}
+  const volBars=bars.slice(-20),turnover=volBars.filter(x=>Number.isFinite(x.volume)&&x.volume>0&&Number.isFinite(x.close)&&x.close>0).map(x=>x.volume*x.close),volumeCoverage=turnover.length/Math.max(1,volBars.length),liquidityKnown=volBars.length>=16&&volumeCoverage>=LIMITS.volumeCoverage;
+  return {maxDrawdown,annualVolatility,medianDollarVolume:liquidityKnown?median(turnover):null,volumeCoverage,liquidityKnown};
+ }
+ function riskVetoReasons(risk,conflict,memory){
+  const veto=[];
+  if(!risk||risk.maxDrawdown===null)veto.push('Drawdown nicht ausreichend messbar');else if(risk.maxDrawdown<=-LIMITS.maxDrawdown)veto.push('252-Bar-Drawdown '+(risk.maxDrawdown*100).toFixed(1)+' % überschreitet −25 %');
+  if(!risk||risk.annualVolatility===null)veto.push('20-Bar-Volatilität nicht ausreichend messbar');else if(risk.annualVolatility>=LIMITS.maxAnnualVolatility)veto.push('Annualisierte 20-Bar-Volatilität '+(risk.annualVolatility*100).toFixed(1)+' % überschreitet 55 %');
+  if(!risk||!risk.liquidityKnown)veto.push('Tagesumsatz/Liquidität nicht ausreichend belegt');else if(risk.medianDollarVolume<LIMITS.minMedianDollarVolume)veto.push('Medianer Tagesumsatz unter 250.000 in Kurswährung');
+  if(conflict===null||conflict>=LIMITS.conflictVeto)veto.push('Bull/Bear-Debatte zu ausgeglichen ('+(conflict===null?'nicht messbar':(conflict*100).toFixed(1)+' % Konflikt')+')');
+  if(memory?.ready&&memory.adjustedConfidence<LIMITS.memoryVetoConfidence)veto.push('Reflection Memory dämpft Konfidenz unter 30 %');
+  return veto;
+ }
+ function prospectiveRows(asset){return (state.journal||[]).filter(p=>p.asset===asset&&p.mode==='prospektiv'&&p.outcome!==null&&p.outcome>=0&&p.status==='bewertet'&&validJournalInputs(p)).slice().sort((a,b)=>String(a.settledAt||'').localeCompare(String(b.settledAt||''))).slice(-LIMITS.memoryWindow);}
+ function memoryStats(asset,baseConfidence){
+  const rows=prospectiveRows(asset),correct=rows.filter(p=>argmax(p.p)===p.outcome).length,accuracy=rows.length?correct/rows.length:null,errorRate=rows.length?1-accuracy:null,factor=errorRate===null?1:Math.max(0,Math.min(1,1-errorRate));
+  return {n:rows.length,correct,accuracy,errorRate,factor,baseConfidence,adjustedConfidence:Number.isFinite(baseConfidence)?baseConfidence*factor:null,ready:rows.length>=LIMITS.memoryMinN};
+ }
+ function settleReflections(){
+  let changed=0;
+  for(const p of state.journal||[]){
+   if(p.mode!=='prospektiv'||p.status!=='bewertet'||p.outcome===null||p.outcome<0||!validJournalInputs(p)||p.reflectionVersion===VERSION)continue;
+   const assetSet=state.sets?.[p.asset],spy=state.sets?.SPY;if(!assetSet||assetSet.source!==p.source||assetSet.basis!==p.basis)continue;
+   const start=assetSet.bars.findIndex(b=>b.date===p.asof),end=assetSet.bars.findIndex(b=>b.date===p.endDate);if(start<0||end<=start)continue;
+   const assetReturn=assetSet.bars[end].close/assetSet.bars[start].close-1;let benchmarkReturn=null,alpha=null,benchmarkNote=' SPY-Vergleich für denselben Zeitraum nicht verfügbar.';
+   if(spy&&ASSETS[p.asset]?.[2]===ASSETS.SPY?.[2]){const a=spy.bars.find(b=>b.date===p.asof),b=spy.bars.find(x=>x.date===p.endDate);if(a&&b&&a.close>0){benchmarkReturn=b.close/a.close-1;alpha=assetReturn-benchmarkReturn;benchmarkNote=' Alpha gegenüber SPY in gleicher Kurswährung '+(alpha>=0?'+':'')+(alpha*100).toFixed(2)+' Prozentpunkte.';}}
+   else if(spy)benchmarkNote=' SPY-Alpha ausgelassen: unterschiedliche Kurswährungen; keine FX-Bereinigung vorhanden.';
+   const predicted=argmax(p.p),correct=predicted===p.outcome,label=['untere Barriere','Zeitablauf','obere Barriere'][p.outcome];
+   p.realized={assetReturn,benchmarkReturn,alpha,benchmark:alpha===null?null:'SPY',startDate:p.asof,endDate:p.endDate};
+   p.reflection={predictedClass:predicted,outcome:p.outcome,correct,lesson:(correct?'Treffer':'Fehlprognose')+': '+['Abwärtsbarriere','Zeitablauf','Aufwärtsbarriere'][predicted]+' prognostiziert; tatsächlich '+label+'. Asset-Rendite '+(assetReturn>=0?'+':'')+(assetReturn*100).toFixed(2)+' Prozent.'+benchmarkNote};
+   p.reflectionVersion=VERSION;p.reflectionAt=new Date().toISOString();changed++;
+  }
+  if(changed)save();return changed;
+ }
+ function decorate(asset,base){
+  const set=state.sets?.[asset],r=QT12.currentResult(asset);if(!set||!r||base.up===null)return base;
+  const modelRows=r.currentP||[],bull=mean(modelRows.map(x=>x[2]).filter(Number.isFinite)),bear=mean(modelRows.map(x=>x[0]).filter(Number.isFinite)),conflict=conflictScore(bull,bear),risk=riskMetrics(set.bars),memory=memoryStats(asset,Math.max(...r.p)),veto=riskVetoReasons(risk,conflict,memory),riskVeto=veto.length>0;
+  base.bullProbability=bull;base.bearProbability=bear;base.debateConflict=conflict;base.debateVeto=conflict===null||conflict>=LIMITS.conflictVeto;base.riskMetrics=risk;base.riskVeto=riskVeto;base.riskVetoReasons=veto;base.reflectionMemory=memory;base.memoryVeto=memory.ready&&memory.adjustedConfidence<LIMITS.memoryVetoConfidence;base.adjustedConfidence=memory.adjustedConfidence;
+  if(riskVeto){base.tradeAllowed=false;if(base.action==='BUY'||base.action==='SELL')base.action='HOLD';base.strength='SCHWACH';base.reason=[base.reason,...veto].filter(Boolean).join(' · ');}return base;
+ }
+ function render(){
+  const summary=document.getElementById('agentLayerSummary'),metrics=document.getElementById('agentLayerMetrics'),rows=document.getElementById('agentReflectionRows');if(!summary||!metrics||!rows)return;
+  const asset=state.asset,decision=QT12.assess(asset),r=decision.riskMetrics,m=decision.reflectionMemory;
+  if(!r){summary.textContent='Kein aktuelles Modellresultat für '+asset+'. Die deterministische Schicht verändert keine fehlenden Prognosen.';metrics.innerHTML='';}
+  else{
+   summary.textContent=asset+' · '+(decision.riskVeto?'VETO · '+decision.riskVetoReasons.join(' / '):'Kein zusätzliches Veto durch diese Schicht.');
+   const card=(label,value,detail)=>'<div class="model"><small>'+esc(label)+'</small><strong>'+esc(value)+'</strong><small>'+esc(detail)+'</small></div>',error=m.errorRate===null?'—':(m.errorRate*100).toFixed(1)+' %';
+   metrics.innerHTML=card('Bull/Bear-Debatte',Number.isFinite(decision.debateConflict)?(decision.debateConflict*100).toFixed(1)+' % Konflikt':'—',Number.isFinite(decision.bullProbability)?'Bull '+(decision.bullProbability*100).toFixed(1)+' % · Bear '+(decision.bearProbability*100).toFixed(1)+' %':'Keine fünf gültigen Modellstimmen')+
+    card('Maximaler 252-Bar-Drawdown',Number.isFinite(r.maxDrawdown)?(r.maxDrawdown*100).toFixed(1)+' %':'—','Veto ab −25 %')+
+    card('Annualisierte Volatilität 20T',Number.isFinite(r.annualVolatility)?(r.annualVolatility*100).toFixed(1)+' %':'—','Veto ab 55 %')+
+    card('Medianer Tagesumsatz 20T',Number.isFinite(r.medianDollarVolume)?r.medianDollarVolume.toLocaleString('de-DE',{maximumFractionDigits:0}):'Nicht belegt',r.liquidityKnown?'Abdeckung '+(r.volumeCoverage*100).toFixed(0)+' %':'Mindestens 80 % Volumenabdeckung erforderlich')+
+    card('Reflection Memory · Trefferquote',Number.isFinite(m.accuracy)?(m.accuracy*100).toFixed(1)+' %':'Noch keine Messung',m.n+' prospektive Fälle · '+(m.ready?'aktiv':'mindestens 20 erforderlich'))+
+    card('Konfidenz nach Fehlerdämpfung',Number.isFinite(m.adjustedConfidence)?(m.adjustedConfidence*100).toFixed(1)+' %':'—','Basis '+(m.baseConfidence*100).toFixed(1)+' % × (1 − Fehlerquote '+error+')');
+  }
+  const history=(state.journal||[]).filter(p=>p.mode==='prospektiv'&&p.reflection&&p.asset===asset).slice().reverse().slice(0,12);
+  rows.innerHTML=history.map(p=>'<tr><td>'+esc(p.asset+' · '+p.asof)+'</td><td>'+esc(p.reflection.correct?'Treffer':'Fehlprognose')+'</td><td>'+esc(Number.isFinite(p.realized?.assetReturn)?(p.realized.assetReturn*100).toFixed(2)+' %':'—')+'</td><td>'+esc(Number.isFinite(p.realized?.alpha)?(p.realized.alpha*100).toFixed(2)+' PP':'—')+'</td><td style="white-space:normal;min-width:260px">'+esc(p.reflection.lesson)+'</td></tr>').join('')||'<tr><td colspan="5">Noch keine prospektiv bewerteten Prognosen.</td></tr>';
+ }
+ function selfTest(){
+  const tests=[],check=(name,ok)=>tests.push({name,ok:!!ok});
+  check('Symmetrische Bull/Bear-Wahrscheinlichkeit ist maximaler Konflikt',conflictScore(.4,.4)===1);
+  check('Klarer Bull-Überhang reduziert Konflikt',conflictScore(.8,.1)<.25);
+  check('Ungültige Wahrscheinlichkeiten werden nicht als konfliktfrei gewertet',conflictScore(-1,.5)===null);
+  const bars=Array.from({length:22},(_,i)=>({close:100+i,volume:10000})),risk=riskMetrics(bars);
+  check('Steigende Kursreihe hat keinen negativen Drawdown',risk.maxDrawdown===0);
+  check('Volatilität wird aus Schlusskursrenditen berechnet',Number.isFinite(risk.annualVolatility));
+  check('20-Bar-Tagesumsatz wird erkannt',risk.liquidityKnown&&risk.medianDollarVolume>0);
+  const sparse=riskMetrics(bars.map(x=>({close:x.close,volume:null})));
+  check('Fehlendes Volumen bleibt unbekannt',!sparse.liquidityKnown&&sparse.medianDollarVolume===null);
+  const falling=Array.from({length:22},(_,i)=>({close:i<2?100:100-(i-1)*2,volume:10000}));
+  check('Drawdown-Veto erkennt einen Rückgang über 25 %',riskVetoReasons(riskMetrics(falling),0,{ready:false}).some(x=>x.includes('Drawdown')));
+  const lowVolume=riskMetrics(bars.map(x=>({...x,volume:1})));
+  check('Liquiditäts-Veto erkennt zu geringen Tagesumsatz',riskVetoReasons(lowVolume,0,{ready:false}).some(x=>x.includes('Tagesumsatz unter')));
+  check('Unbekannte Liquidität blockiert fail-closed',riskVetoReasons(sparse,0,{ready:false}).some(x=>x.includes('nicht ausreichend belegt')));
+  check('Hoher Debattenkonflikt blockiert die Entscheidung',riskVetoReasons(risk,.8,{ready:false}).some(x=>x.includes('Debatte')));
+  const fixture=()=>({asof:'2025-01-01',anchor:{date:'2025-01-01',open:100,high:101,low:99,close:100,volume:1000},atr:1,h:5,k:1,p:[.8,.1,.1],models:Array.from({length:NAMES.length},()=>[.8,.1,.1])});
+  const old=state.journal,rows=Array.from({length:20},(_,i)=>({...fixture(),asset:'SELFTEST',mode:'prospektiv',outcome:i<10?0:1,status:'bewertet',settledAt:new Date(2025,0,i+1).toISOString()}));
+  state.journal=rows;const memory=memoryStats('SELFTEST',.8);state.journal=old;
+  check('Leeres Memory erfindet keine Fehlerquote',(()=>{const v=memoryStats('NO_HISTORY',.8);return v.n===0&&v.errorRate===null&&v.adjustedConfidence===.8})());
+  check('Fehlerdämpfung nutzt ausschließlich prospektiv bewertete Fälle',memory.ready&&Math.abs(memory.errorRate-.5)<1e-12&&Math.abs(memory.adjustedConfidence-.4)<1e-12);
+  return {passed:tests.filter(x=>x.ok).length,total:tests.length,tests};
+ }
+ return {VERSION,LIMITS,conflictScore,riskMetrics,riskVetoReasons,memoryStats,settleReflections,decorate,render,selfTest};
+})();
+const qt12AgentBaseAssess=QT12.assess.bind(QT12);
+QT12.assess=function(asset){return QT12Agents.decorate(asset,qt12AgentBaseAssess(asset));};
+const qt12AgentBaseRender=QT12.render.bind(QT12);
+QT12.render=function(){const value=qt12AgentBaseRender();QT12Agents.render();return value;};
+const qt12AgentBaseSettle=settle;
+settle=function(show=true){const value=qt12AgentBaseSettle(show);QT12Agents.settleReflections();return value;};
+document.getElementById('agentLayerSelfTest')?.addEventListener('click',()=>{
+ const result=QT12Agents.selfTest(),el=document.getElementById('agentLayerTestStatus');
+ el.textContent='Selbsttest: '+result.passed+'/'+result.total+' bestanden. '+result.tests.filter(x=>!x.ok).map(x=>x.name).join(' · ');
+ el.className='sub '+(result.passed===result.total?'green':'red');
+ log(result.passed===result.total?'ok':'error','TradingAgents-inspirierte Deterministik: '+result.passed+'/'+result.total+' Tests bestanden.');
+});
+QT12Agents.settleReflections();QT12Agents.render();
+</script>
+
 </body></html>
