@@ -1,4 +1,4 @@
-# QuantTrend 12.0.5
+# QuantTrend 12.2.0
 
 ## Fehlerbehebung
 - Die aktive ETF-Empfehlung wird jetzt auch in der primären Dashboard-Übersicht (`#qt12DashboardSignal`) und im bestehenden Ensemble-Entscheidungsfeld (`#decision`) angezeigt. Beide Anzeigen verwenden dieselbe berechnete Empfehlung wie die ETF-Kommandozentrale.
@@ -34,7 +34,7 @@ Die Anwendung ergänzt die vorhandene Fünf-Modell-Engine um eine lokale Researc
 - **Reflection Memory:** Nur prospektiv gespeicherte und später vollständig bewertete Prognosen zählen. Die letzten maximal 30 Fälle je Asset liefern Fehlerquote und Konfidenzdämpfung (C_{adjusted}=C_{base}(1-ErrorRate)). Vor 20 Fällen wird daraus kein Veto abgeleitet.
 - **Realisierte Rendite / Alpha:** Die Reflection speichert Asset-Rendite über den tatsächlich bewerteten Zeitraum. SPY-Alpha wird nur bei identischer Kurswährung berechnet; ohne FX-Zeitreihe wird ein EUR/USD-Vergleich bewusst ausgelassen.
 - **Risk Committee:** Veto bei 252-Bar-Maximaldrawdown von mindestens 25 %, annualisierter 20-Bar-Volatilität ab 55 %, medianem 20-Bar-Tagesumsatz unter 250.000 in Kurswährung oder nicht ausreichend belegter Liquidität. Diese Schwellen sind transparente Schutzparameter und noch nicht empirisch optimiert.
-- **Entscheidung:** Die Schicht darf BUY/SELL auf HOLD herabstufen. Sie verändert weder die gespeicherten Modellwahrscheinlichkeiten noch alte Prognoseeinträge.
+- **Entscheidung:** Prognose und Handelsfreigabe sind getrennte Ausgaben. Bull/Bear-Konflikt, Drawdown, Volatilität, Liquidität und Reflection Memory dürfen die Handelsfreigabe sperren, aber niemals eine vorhandene BUY-/SELL-Richtungsprognose in HOLD umschreiben. Gespeicherte Modellwahrscheinlichkeiten und alte Prognoseeinträge bleiben unverändert.
 - **Betrieb:** Kein LLM, keine API-Keys, keine CDN-Abhängigkeit, kein zusätzliches Backend. Reflection-Texte werden deterministisch aus gespeicherten Ergebnissen erzeugt.
 
 Der Bereich „Research Debate · Reflection Memory · Risk Committee“ enthält einen integrierten Algorithmus-Selbsttest. Er prüft Konfliktberechnung, Drawdown, Volatilität, Liquiditätsabdeckung, Fail-closed-Verhalten und prospektive Fehlerdämpfung.
@@ -48,9 +48,19 @@ Referenzen:
 - https://github.com/TauricResearch/TradingAgents/releases
 - https://github.com/TauricResearch/TradingAgents/blob/main/CHANGELOG.md
 
-### Prüfung 12.1.0
+### QuantTrend 12.2.0 · Prognose und Handelsfreigabe getrennt
 
-- Alle 13 integrierten deterministischen Selbsttests bestanden.
-- Alle 13 ausführbaren Inline-JavaScript-Blöcke mit dem JavaScript-Parser geprüft.
+Die bisherige Logik hat Prognose und Handelsfreigabe vermischt: Sobald eine Qualitäts- oder Sicherheitsbedingung nicht erfüllt war, wurde die sichtbare Entscheidung auf HOLD gesetzt. Damit konnte eine klare negative oder positive Modellprognose vollständig verschwinden. Das ist korrigiert.
+
+- **Richtungsprognose:** BUY bei P(steigend) mindestens 40 % und einem Vorsprung gegenüber P(fallend) von mindestens 5 Prozentpunkten; SELL spiegelbildlich. Andernfalls HOLD. Das sind explizite Signal-Schwellen, keine behauptete optimale Handelsstrategie.
+- **Handelsfreigabe:** Bleibt separat und verlangt weiterhin die bisherigen Daten-, OOS-, Kalibrierungs-, Modellkonsens-, Event- und Regimebedingungen.
+- **Research Debate / Risk Committee:** Konflikt-, Drawdown-, Volatilitäts-, Liquiditäts- und Memory-Vetos sperren nur die Handelsfreigabe. Sie überschreiben nicht mehr BUY/SELL.
+- **Oberfläche:** ETF-Tabelle, aktive ETF-Karte, Dashboard und CSV unterscheiden jetzt Richtungsprognose und Handelsfreigabe einschließlich der konkreten Sperrgründe.
+- **Semantik:** BUY/SELL bezeichnet eine Modell-Richtungshypothese. Nur „Handelsfreigabe: FREIGEGEBEN“ zeigt, dass die separaten Gates erfüllt sind. Daraus wird keine Order ausgeführt.
+
+### Prüfung 12.2.0
+
+- Vier zusätzliche Regressionstests prüfen BUY-, SELL-, HOLD- und NO_SIGNAL-Klassifikation unabhängig von der Handelsfreigabe.
+- Zusammen mit den bisherigen 13 Research-/Memory-/Risk-Tests: 17 deterministische Selbsttests vorgesehen.
+- Die geänderte HTML-Datei wurde vollständig im GitHub-Repository aktualisiert. Ein erneuter Parserlauf aller Inline-Skripte und ein Browser-E2E-Test müssen nach dem Quelltext-Update noch separat verifiziert werden.
 - Keine neue Laufzeitabhängigkeit und kein API-Key erforderlich.
-- Ein echter Browser-E2E-Test und eine erneute produktive Kurs-/Trainingstestrunde sind nicht Bestandteil dieser lokalen Quelltextprüfung.
