@@ -60,7 +60,7 @@ Die bisherige Logik hat Prognose und Handelsfreigabe vermischt: Sobald eine Qual
 
 ### Prüfung 12.2.0
 
-- Vier zusätzliche Regressionstests prüfen BUY-, SELL-, HOLD- und NO_SIGNAL-Klassifikation unabhängig von der Handelsfreigabe.
-- Zusammen mit den bisherigen 13 Research-/Memory-/Risk-Tests: 17 deterministische Selbsttests vorgesehen.
+- Fünf zusätzliche Regressionstests prüfen BUY-, SELL-, HOLD- und NO_SIGNAL-Klassifikation sowie explizit, dass ein Risk-Veto die Handelsfreigabe sperrt, aber ein BUY-Signal nicht überschreibt.
+- Zusammen mit den bisherigen 13 Research-/Memory-/Risk-Tests: 18 deterministische Selbsttests.
 - Die geänderte HTML-Datei wurde vollständig im GitHub-Repository aktualisiert. Ein erneuter Parserlauf aller Inline-Skripte und ein Browser-E2E-Test müssen nach dem Quelltext-Update noch separat verifiziert werden.
 - Keine neue Laufzeitabhängigkeit und kein API-Key erforderlich.
