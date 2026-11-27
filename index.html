@@ -14,7 +14,7 @@
 <div class="row between"><div><div class="eyebrow">QUANTTREND 12.1.0 · PRIORISIERTE ETF-ENTSCHEIDUNG</div><h2 id="qt12Title" style="font-size:22px;margin:5px 0">ETF-KOMMANDOZENTRALE</h2><p class="sub">Für jeden ETF: KAUFEN · HALTEN · VERKAUFEN und separat STEIGEND / FALLEND. Modellvermutung, keine Gewissheit.</p></div><div class="row"><button id="qt12RefreshData" class="ghost">↻ PRIORITÄTS-KURSDATEN LADEN</button><button id="qt12Run" class="primary">▶ ALLE ETFs automatisch analysieren</button><button id="qt12Stop" class="ghost" disabled>Stop</button><button id="qt12Export" class="ghost">↓ Empfehlungen CSV</button></div></div>
 <div id="qt12Status" class="notice">Noch kein ETF-Gesamtlauf ausgeführt. Die Analyse verwendet echte Kursreihen und trainiert jeden ETF separat.</div><div id="qt12MonitorStatus" class="notice">Dashboard-Monitor: Noch keine gespeicherten ETF-Empfehlungen.</div>
 <div id="qt12Dependency" class="notice" aria-live="polite"><b>ETF-Abhängigkeiten</b><br>Wird aus synchronisierten Kursreihen berechnet …</div>
-<div id="qt12Current" class="qt12-current"><div class="qt12-empty">Noch keine aktuelle Empfehlung. Gesamtlauf starten.</div></div>
+<div id="qt12Current" class="qt12-current"><div class="qt12-empty">Noch keine aktuelle Richtungsprognose. Gesamtlauf starten.</div></div>
 <div class="scroll"><table class="qt12-table"><thead><tr><th>ETF</th><th>Richtungsprognose</th><th>Handelsfreigabe</th><th>Vermutete Richtung</th><th>Stärke</th><th>Aufwärts</th><th>Abwärts</th><th>Datenstand</th><th>Qualität / Hinweis</th></tr></thead><tbody id="qt12Rows"><tr><td colspan="9">Noch keine Analyse.</td></tr></tbody></table></div>
 <p class="sub">KAUFEN = positive Long-Einschätzung; VERKAUFEN = Position reduzieren/abgeben, nicht automatisch leerverkaufen oder shorten. HALTEN = kein ausreichend belastbarer Vorteil. Die Prozentwerte sind Modellwahrscheinlichkeiten für die trainierten Barrieren, keine garantierten Kursrenditen. Kein Orderversand.</p>
 <p class="sub"><b>Prioritätsgruppe:</b> EUNL.DE (MSCI World) → XMAW.DE (AC World Screened) → IQQE.DE (Emerging Markets). World und AC World Screened haben strukturell erhebliche globale Aktienüberschneidungen; ihre Kurskorrelation wird im Multi-Asset-Vergleich nur aus tatsächlich vorhandenen, zeitlich abgeglichenen Kursdaten berechnet. Eine exakte Holdings-Überschneidung wird ohne datierte Fondsbestandsdaten nicht behauptet.</p>
@@ -2472,6 +2472,7 @@ function bindV113(){
 /* QuantTrend 12 recommendation layer. Uses the existing causal, per-asset model pipeline. */
 const QT12={version:'12.2.0',signalEdgeThreshold:.05,signalMinDirectionalProbability:.40,running:false,stop:false,priority:ETF_PRIORITY.slice(),etfs:[...ETF_PRIORITY,...Object.entries(ASSETS).filter(([k,v])=>v[1]==='etf'&&!ETF_PRIORITY.includes(k)).map(([k])=>k)],
  delay:ms=>new Promise(resolve=>setTimeout(resolve,ms)),
+ forecastSignal(up,down){if(!Number.isFinite(up)||!Number.isFinite(down))return 'NO_SIGNAL';const edge=up-down;if(up>=this.signalMinDirectionalProbability&&edge>=this.signalEdgeThreshold)return 'BUY';if(down>=this.signalMinDirectionalProbability&&edge<=-this.signalEdgeThreshold)return 'SELL';return 'HOLD';},
  currentResult(asset){const r=state.results?.[asset],set=state.sets?.[asset];const validP=p=>Array.isArray(p)&&p.length===3&&p.every(v=>Number.isFinite(v)&&v>=0&&v<=1)&&Math.abs(p.reduce((a,b)=>a+b,0)-1)<=1e-5;return r&&set&&r.version===E.RESULT_VERSION&&r.fingerprint===set.fingerprint&&r.source===set.source&&r.basis===set.basis&&Array.isArray(r.oos)&&r.oos.length===5&&Array.isArray(r.currentP)&&r.currentP.length===5&&r.currentP.every(validP)&&validP(r.p)&&Array.isArray(r.ensemble)?r:null;},
  assess(asset){
   const set=state.sets?.[asset],r=this.currentResult(asset);
@@ -2504,9 +2505,7 @@ const QT12={version:'12.2.0',signalEdgeThreshold:.05,signalMinDirectionalProbabi
   if(!eventClear)tradeBlockers.push('Event-Guard nicht frisch und eindeutig freigegeben');
   // Forecast direction and execution permission are separate outputs. No risk/quality gate may rewrite the forecast to HOLD.
   const tradeAllowed=quality&&!structural&&!highVol&&eventClear&&!eventVeto;
-  let action='HOLD';
-  if(up>=this.signalMinDirectionalProbability&&edge>=this.signalEdgeThreshold)action='BUY';
-  else if(down>=this.signalMinDirectionalProbability&&edge<=-this.signalEdgeThreshold)action='SELL';
+  const action=this.forecastSignal(up,down);
   const forecastReason=action==='BUY'?'Positive Richtungshypothese: Aufwärtswahrscheinlichkeit überwiegt um '+(edge*100).toFixed(1)+' Prozentpunkte.':
     action==='SELL'?'Negative Richtungshypothese: Abwärtswahrscheinlichkeit überwiegt um '+(-edge*100).toFixed(1)+' Prozentpunkte.':
     'Kein gerichteter Vorteil oberhalb der Prognoseschwelle von '+(this.signalEdgeThreshold*100).toFixed(0)+' Prozentpunkten.';
@@ -2721,7 +2720,7 @@ const QT12Agents=(()=>{
   const asset=state.asset,decision=QT12.assess(asset),r=decision.riskMetrics,m=decision.reflectionMemory;
   if(!r){summary.textContent='Kein aktuelles Modellresultat für '+asset+'. Die deterministische Schicht verändert keine fehlenden Prognosen.';metrics.innerHTML='';}
   else{
-   summary.textContent=asset+' · '+(decision.riskVeto?'VETO · '+decision.riskVetoReasons.join(' / '):'Kein zusätzliches Veto durch diese Schicht.');
+   summary.textContent=asset+' · '+(decision.riskVeto?'HANDELSFREIGABE GESPERRT · '+decision.riskVetoReasons.join(' / '):'Kein zusätzliches Handelsveto durch diese Schicht.');
    const card=(label,value,detail)=>'<div class="model"><small>'+esc(label)+'</small><strong>'+esc(value)+'</strong><small>'+esc(detail)+'</small></div>',error=m.errorRate===null?'—':(m.errorRate*100).toFixed(1)+' %';
    metrics.innerHTML=card('Bull/Bear-Debatte',Number.isFinite(decision.debateConflict)?(decision.debateConflict*100).toFixed(1)+' % Konflikt':'—',Number.isFinite(decision.bullProbability)?'Bull '+(decision.bullProbability*100).toFixed(1)+' % · Bear '+(decision.bearProbability*100).toFixed(1)+' %':'Keine fünf gültigen Modellstimmen')+
     card('Maximaler 252-Bar-Drawdown',Number.isFinite(r.maxDrawdown)?(r.maxDrawdown*100).toFixed(1)+' %':'—','Veto ab −25 %')+
@@ -2755,6 +2754,10 @@ const QT12Agents=(()=>{
   state.journal=rows;const memory=memoryStats('SELFTEST',.8);state.journal=old;
   check('Leeres Memory erfindet keine Fehlerquote',(()=>{const v=memoryStats('NO_HISTORY',.8);return v.n===0&&v.errorRate===null&&v.adjustedConfidence===.8})());
   check('Fehlerdämpfung nutzt ausschließlich prospektiv bewertete Fälle',memory.ready&&Math.abs(memory.errorRate-.5)<1e-12&&Math.abs(memory.adjustedConfidence-.4)<1e-12);
+  check('Klare Aufwärtsprognose bleibt BUY unabhängig von Handelsfreigabe',QT12.forecastSignal(.62,.31)==='BUY');
+  check('Klare Abwärtsprognose bleibt SELL unabhängig von Handelsfreigabe',QT12.forecastSignal(.31,.62)==='SELL');
+  check('Kleine Richtungsdifferenz bleibt HOLD',QT12.forecastSignal(.38,.35)==='HOLD');
+  check('Fehlende Wahrscheinlichkeiten erzeugen kein Signal',QT12.forecastSignal(null,.7)==='NO_SIGNAL');
   return {passed:tests.filter(x=>x.ok).length,total:tests.length,tests};
  }
  return {VERSION,LIMITS,conflictScore,riskMetrics,riskVetoReasons,memoryStats,settleReflections,decorate,render,selfTest};
