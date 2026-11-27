@@ -354,18 +354,19 @@ function dataset(b,cfg,factors){
  const logReturns=b.map((bar,i)=>i?Math.log(bar.close/b[i-1].close):null),rollingVol20=Array(b.length).fill(null),rollingAtrPct=Array(b.length).fill(null);
  const sd=a=>a.length>=2?Math.sqrt(a.reduce((z,x)=>z+(x-mean(a))**2,0)/(a.length-1)):null;
  for(let i=1;i<b.length;i++){const rr=logReturns.slice(Math.max(1,i-19),i+1).filter(Number.isFinite);if(rr.length>=16)rollingVol20[i]=sd(rr)*Math.sqrt(252);const atr=ind[i]?.atr;if(Number.isFinite(atr)&&b[i].close>0)rollingAtrPct[i]=atr/b[i].close;}
- const rows=[];
+ let runningHigh=-Infinity,runningLow=Infinity,runningHighIndex=0;const rows=[];
  for(let i=50;i<b.length;i++){
   const p=b[i],c=p.close,z=ind[i],vols=b.slice(i-20,i).map(x=>x.volume),vok=vols.every(Number.isFinite)&&mean(vols)>0,rs=b.slice(i-19,i+1).map((x,j)=>x.close/b[i-20+j].close-1),cut=Date.parse(p.date+'T23:59:59.999Z');
-  const hist=b.slice(0,i+1),w252=hist.slice(-252),w60=hist.slice(-60),w120=hist.slice(-120),cl252=w252.map(x=>x.close),clAll=hist.map(x=>x.close);
-  const maxAll=Math.max(...clAll),max252=Math.max(...cl252),minAll=Math.min(...clAll),mean252=mean(cl252),sorted252=cl252.slice().sort((a,b)=>a-b),median252=sorted252.length%2?sorted252[(sorted252.length-1)/2]:(sorted252[sorted252.length/2-1]+sorted252[sorted252.length/2])/2;
+  if(c>=runningHigh){runningHigh=c;runningHighIndex=i;}runningLow=Math.min(runningLow,c);
+  const hist=b.slice(0,i+1),w252=hist.slice(-252),w60=hist.slice(-60),w120=hist.slice(-120),cl252=w252.map(x=>x.close);
+  const maxAll=runningHigh,max252=Math.max(...cl252),minAll=runningLow,mean252=mean(cl252),sorted252=cl252.slice().sort((a,b)=>a-b),median252=sorted252.length%2?sorted252[(sorted252.length-1)/2]:(sorted252[sorted252.length/2-1]+sorted252[sorted252.length/2])/2;
   const rv20=rollingVol20[i],rv60=sd(logReturns.slice(Math.max(1,i-59),i+1).filter(Number.isFinite)),rv252=sd(logReturns.slice(Math.max(1,i-251),i+1).filter(Number.isFinite));
   const volReference=rollingVol20.slice(Math.max(1,i-251),i).filter(Number.isFinite),volPercentile=rv20!==null&&volReference.length?volReference.filter(v=>v<=rv20).length/volReference.length:null;
   const atrReference=rollingAtrPct.slice(Math.max(0,i-251),i).filter(Number.isFinite),atrPct=rollingAtrPct[i],atrPercentile=atrPct!==null&&atrReference.length?atrReference.filter(v=>v<=atrPct).length/atrReference.length:null;
-  let athIndex=0;for(let j=0;j<=i;j++)if(b[j].close>=maxAll)athIndex=j;
+  const athIndex=runningHighIndex;
   const x=[z.rsi/100,c/b[i-1].close-1,c/b[i-5].close-1,c/b[i-20].close-1,vok&&Number.isFinite(p.volume)?p.volume/mean(vols):null,c/z.sma20-1,c/z.sma50-1,z.atr/c,z.macd/c,std(rs),(p.high-p.low)/c,p.high===p.low?.5:(c-p.low)/(p.high-p.low),p.open/b[i-1].close-1,Number.isFinite(p.volume)&&b[i-1].volume>0?p.volume/b[i-1].volume-1:null,frac[i],breaks[i].score,
    c/maxAll-1,c/max252-1,c/minAll-1,c/mean252-1,c/median252-1,Number.isFinite(z.sma50)?c/z.sma50-1:null,
-   c/w60[0].close-1,c/w120[0].close-1,rv60,rv252,rv20!==null&&rv252>0?rv20/(rv252*Math.sqrt(252/Math.min(252,i))):null,volPercentile,atrPercentile,athIndex/Math.max(1,i)];
+   c/w60[0].close-1,c/w120[0].close-1,rv60,rv252,rv20!==null&&rv252>0?rv20/(rv252*Math.sqrt(252)):null,volPercentile,atrPercentile,(i-athIndex)/252];
   for(let key of keys)x.push(factorAt(groups[key],cut,cfg.factorAge).value);
   let label=labelAt(b,ind,i,c,cfg.h,cfg.k);
   rows.push({i,x,y:label?.y??-2,end:label?.end??null,ambiguous:label?.y===-1,changePoint:breaks[i].flag,breakGuard:breaks[i].guard});
