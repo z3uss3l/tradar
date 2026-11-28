@@ -1,4 +1,11 @@
-# QuantTrend 12.3.0
+# QuantTrend 12.3.1
+
+## Szenario-Engine: Feature-Schema und Wahrscheinlichkeitsdiagnose
+- Der Was-wäre-wenn-Pfad übermittelt jetzt neben den Feature-Werten auch die vollständigen Feature-Namen. Der Worker vergleicht Anzahl und Reihenfolge mit dem Schema, das beim Training der aktuellen fünf Modelle verwendet wurde.
+- Jedes Modell speichert die erwartete Feature-Anzahl. Der Scaler weist abweichende Vektorlängen und beschädigte Skalierungsmetadaten explizit zurück, statt fehlende Dimensionen unbemerkt in die Berechnung laufen zu lassen.
+- Roh- und kalibrierte Wahrscheinlichkeiten werden pro Modell validiert. Fehler benennen das betroffene Modell und die konkrete Abweichung; das Ensemble wird nur bei fünf gültigen Verteilungen aggregiert.
+- Szenarien aus einer anderen Engine-Version oder mit unvollständigem Feature-Schema werden gesperrt und verlangen ein erneutes Training. Wahrscheinlichkeiten werden weder geklemmt noch durch Ersatzwerte repariert.
+- Regressionstest: Alle fünf Modellfamilien liefern bei 30 Merkmalen endliche, normierte Wahrscheinlichkeiten; alle fünf weisen einen absichtlich verkürzten 29-Merkmal-Vektor mit einer eindeutigen Schemafehlermeldung zurück.
 
 ## Fehlerbehebung
 - Die aktive ETF-Empfehlung wird jetzt auch in der primären Dashboard-Übersicht (`#qt12DashboardSignal`) und im bestehenden Ensemble-Entscheidungsfeld (`#decision`) angezeigt. Beide Anzeigen verwenden dieselbe berechnete Empfehlung wie die ETF-Kommandozentrale.
