@@ -1,4 +1,11 @@
-# QuantTrend 12.3.1
+# QuantTrend 12.3.2
+
+## Modellszenario: numerische Wahrscheinlichkeitsvalidierung
+- Die fünf Modellfamilien und die Szenario-Kalibrierung verwenden jetzt dieselbe zentrale Prüfung für dreiklassige Wahrscheinlichkeitsvektoren.
+- Reine IEEE-754-Rundungsabweichungen bis 1e-12 an den Grenzen 0 und 1 werden toleriert und auf den gültigen Intervallrand begrenzt. Die Summe muss weiterhin innerhalb 1e-8 bei 1 liegen. Das behebt legitime Fließkomma-Randfälle, ohne inhaltlich ungültige Wahrscheinlichkeiten zu kaschieren.
+- Nicht-endliche Softmax-Logits, ungültige Rohverteilungen und ungültige kalibrierte Verteilungen werden mit konkretem Zahlenvektor abgewiesen. Es gibt keine Ersatzwahrscheinlichkeiten und kein stilles Umverteilen einer fehlerhaften Modellstimme.
+- Die Feature-Schema-Prüfungen und das Erfordernis aller fünf gültigen Modellstimmen bleiben bestehen.
+- Engine-/Ergebnisversion auf 12.3.2 angehoben; gespeicherte Ergebnisse älterer Versionen bleiben lesbar, können aber für manuelle Szenarien ein erneutes Training erfordern.
 
 ## Szenario-Engine: Feature-Schema und Wahrscheinlichkeitsdiagnose
 - Der Was-wäre-wenn-Pfad übermittelt jetzt neben den Feature-Werten auch die vollständigen Feature-Namen. Der Worker vergleicht Anzahl und Reihenfolge mit dem Schema, das beim Training der aktuellen fünf Modelle verwendet wurde.
